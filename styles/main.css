@@ -1,0 +1,22 @@
+/* Base page chrome. App styling belongs in components as Tailwind classes;
+   this file only makes the page behave like an app surface. */
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  /* No rubber-banding past the edges of the app. */
+  overscroll-behavior: none;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: -apple-system, system-ui, sans-serif;
+  /* No grey flash on taps; controls provide their own feedback. */
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+
+#root {
+  height: 100%;
+}

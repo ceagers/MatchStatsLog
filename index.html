@@ -1,0 +1,1145 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>FootballMatchDay</title>
+<link rel="stylesheet" href="styles/main.css">
+
+<!-- Tailwind's in-page compiler. It watches the DOM and generates styles for
+     every class it sees, so there is no build step and no generated CSS file.
+     Vendored, like everything else: nothing here reaches off-device. -->
+<script src="vendor/tailwind-browser.js"></script>
+<style type="text/tailwindcss">
+/* Konsta UI theme, inlined from konsta/react/theme.css by
+   Scripts/build-app-template.sh. Do not edit by hand. */
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-ios:
+    -apple-system, SF Pro Text, SF UI Text, system-ui, Helvetica Neue,
+    Helvetica, Arial, sans-serif;
+  --font-material: Roboto, system-ui, Noto, Helvetica, Arial, sans-serif;
+  --text-2xs: 0.625rem;
+
+  --transition-ios-range-thumb:
+    transform, translate, scale, opacity, rotate, background-color, box-shadow;
+  --shadow-ios-thumb:
+    0 0.5px 4px rgba(0, 0, 0, 0.12), 0 6px 13px rgba(0, 0, 0, 0.12);
+
+  --ease-material-in: cubic-bezier(0, 0.8, 0.34, 1);
+  --ease-material-in-popup: cubic-bezier(0, 1, 0.2, 1);
+  --transition-transform-opacity: transform, translate, scale, opacity, rotate;
+}
+:root {
+  --k-device-pixel-ratio: 1;
+  --k-hairline-color: rgba(0, 0, 0, 0.2);
+  --k-rtl-reverse: 1;
+}
+
+[dir='rtl'] {
+  --k-rtl-reverse: -1;
+}
+
+.dark {
+  background-color: #000;
+  color: #fff;
+  --k-hairline-color: rgba(255, 255, 255, 0.15);
+}
+
+@media (min-resolution: 1.25dppx) {
+  :root {
+    --k-device-pixel-ratio: 1.25;
+  }
+}
+@media (min-resolution: 1.5dppx) {
+  :root {
+    --k-device-pixel-ratio: 1.5;
+  }
+}
+@media (min-resolution: 1.75dppx) {
+  :root {
+    --k-device-pixel-ratio: 1.75;
+  }
+}
+@media (min-resolution: 2dppx) {
+  :root {
+    --k-device-pixel-ratio: 2;
+  }
+}
+@media (min-resolution: 2.25dppx) {
+  :root {
+    --k-device-pixel-ratio: 2.25;
+  }
+}
+@media (min-resolution: 2.5dppx) {
+  :root {
+    --k-device-pixel-ratio: 2.5;
+  }
+}
+@media (min-resolution: 3dppx) {
+  :root {
+    --k-device-pixel-ratio: 3;
+  }
+}
+* {
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+  -webkit-text-size-adjust: 100%;
+}
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+.k-ios,
+.ios {
+  @apply font-ios;
+}
+.k-material,
+.md {
+  @apply font-material;
+}
+
+:root, .k-color-brand-primary {
+  --k-color-primary: rgb(0 122 255);
+  --k-color-ios-primary: rgb(0 122 255);
+  --k-color-ios-primary-tint: rgb(41 143 255);
+  --k-color-ios-primary-shade: rgb(0 102 214);
+  --k-color-md-light-surface: rgb(250 249 254);
+  --k-color-md-light-surface-variant: rgb(216 217 228);
+  --k-color-md-light-surface-1: rgb(243 243 250);
+  --k-color-md-light-surface-2: rgb(237 237 246);
+  --k-color-md-light-surface-3: rgb(231 231 241);
+  --k-color-md-light-surface-4: rgb(224 226 237);
+  --k-color-md-light-on-surface: rgb(47 50 58);
+  --k-color-md-light-on-surface-variant: rgb(92 95 104);
+  --k-color-md-light-outline: rgb(120 122 132);
+  --k-color-md-light-outline-variant: rgb(175 177 188);
+  --k-color-md-light-primary: rgb(73 95 139);
+  --k-color-md-light-on-primary: rgb(249 248 255);
+  --k-color-md-light-primary-container: rgb(179 201 252);
+  --k-color-md-light-on-primary-container: rgb(43 65 108);
+  --k-color-md-light-secondary: rgb(87 95 114);
+  --k-color-md-light-on-secondary: rgb(249 248 255);
+  --k-color-md-light-secondary-container: rgb(219 226 249);
+  --k-color-md-light-on-secondary-container: rgb(74 82 100);
+  --k-color-md-light-surface-5: rgb(216 219 232);
+  --k-color-md-dark-surface: rgb(13 14 18);
+  --k-color-md-dark-surface-variant: rgb(13 14 18);
+  --k-color-md-dark-surface-1: rgb(17 19 24);
+  --k-color-md-dark-surface-2: rgb(23 26 31);
+  --k-color-md-dark-surface-3: rgb(29 32 38);
+  --k-color-md-dark-surface-4: rgb(35 38 45);
+  --k-color-md-dark-on-surface: rgb(227 229 240);
+  --k-color-md-dark-on-surface-variant: rgb(168 171 181);
+  --k-color-md-dark-outline: rgb(115 117 126);
+  --k-color-md-dark-outline-variant: rgb(69 72 80);
+  --k-color-md-dark-primary: rgb(182 198 238);
+  --k-color-md-dark-on-primary: rgb(48 64 96);
+  --k-color-md-dark-primary-container: rgb(66 82 116);
+  --k-color-md-dark-on-primary-container: rgb(217 227 255);
+  --k-color-md-dark-secondary: rgb(191 198 220);
+  --k-color-md-dark-on-secondary: rgb(56 64 82);
+  --k-color-md-dark-secondary-container: rgb(52 59 77);
+  --k-color-md-dark-on-secondary-container: rgb(183 191 213);
+  --k-color-md-dark-surface-5: rgb(42 46 55);
+}
+.k-color-brand-red {
+  --k-color-primary: rgb(255 59 48);
+  --k-color-ios-primary: rgb(255 59 48);
+  --k-color-ios-primary-tint: rgb(255 98 89);
+  --k-color-ios-primary-shade: rgb(255 20 7);
+  --k-color-md-light-surface: rgb(255 248 247);
+  --k-color-md-light-surface-variant: rgb(237 213 209);
+  --k-color-md-light-surface-1: rgb(255 240 238);
+  --k-color-md-light-surface-2: rgb(254 233 230);
+  --k-color-md-light-surface-3: rgb(250 227 224);
+  --k-color-md-light-surface-4: rgb(246 221 218);
+  --k-color-md-light-on-surface: rgb(62 47 45);
+  --k-color-md-light-on-surface-variant: rgb(109 91 88);
+  --k-color-md-light-outline: rgb(138 118 115);
+  --k-color-md-light-outline-variant: rgb(195 173 170);
+  --k-color-md-light-primary: rgb(140 78 70);
+  --k-color-md-light-on-primary: rgb(255 247 246);
+  --k-color-md-light-primary-container: rgb(250 170 159);
+  --k-color-md-light-on-primary-container: rgb(96 42 36);
+  --k-color-md-light-secondary: rgb(120 87 83);
+  --k-color-md-light-on-secondary: rgb(255 247 246);
+  --k-color-md-light-secondary-container: rgb(255 218 213);
+  --k-color-md-light-on-secondary-container: rgb(105 74 70);
+  --k-color-md-light-surface-5: rgb(241 214 211);
+  --k-color-md-dark-surface: rgb(19 13 12);
+  --k-color-md-dark-surface-variant: rgb(19 13 12);
+  --k-color-md-dark-surface-1: rgb(26 17 16);
+  --k-color-md-dark-surface-2: rgb(34 23 22);
+  --k-color-md-dark-surface-3: rgb(41 29 27);
+  --k-color-md-dark-surface-4: rgb(48 34 32);
+  --k-color-md-dark-on-surface: rgb(249 224 220);
+  --k-color-md-dark-on-surface-variant: rgb(188 166 163);
+  --k-color-md-dark-outline: rgb(132 113 110);
+  --k-color-md-dark-outline-variant: rgb(85 68 66);
+  --k-color-md-dark-primary: rgb(249 182 173);
+  --k-color-md-dark-on-primary: rgb(97 51 46);
+  --k-color-md-dark-primary-container: rgb(118 69 63);
+  --k-color-md-dark-on-primary-container: rgb(255 219 214);
+  --k-color-md-dark-secondary: rgb(231 189 183);
+  --k-color-md-dark-on-secondary: rgb(86 57 53);
+  --k-color-md-dark-secondary-container: rgb(81 52 48);
+  --k-color-md-dark-on-secondary-container: rgb(223 182 176);
+  --k-color-md-dark-surface-5: rgb(58 41 39);
+}
+.k-color-brand-green {
+  --k-color-primary: rgb(52 199 89);
+  --k-color-ios-primary: rgb(52 199 89);
+  --k-color-ios-primary-tint: rgb(82 210 114);
+  --k-color-ios-primary-shade: rgb(44 167 75);
+  --k-color-md-light-surface: rgb(248 250 243);
+  --k-color-md-light-surface-variant: rgb(213 220 208);
+  --k-color-md-light-surface-1: rgb(241 245 236);
+  --k-color-md-light-surface-2: rgb(234 240 229);
+  --k-color-md-light-surface-3: rgb(228 234 223);
+  --k-color-md-light-surface-4: rgb(221 229 216);
+  --k-color-md-light-on-surface: rgb(45 52 44);
+  --k-color-md-light-on-surface-variant: rgb(90 97 88);
+  --k-color-md-light-outline: rgb(117 125 115);
+  --k-color-md-light-outline-variant: rgb(172 180 169);
+  --k-color-md-light-primary: rgb(62 105 65);
+  --k-color-md-light-on-primary: rgb(233 255 229);
+  --k-color-md-light-primary-container: rgb(191 239 189);
+  --k-color-md-light-on-primary-container: rgb(49 91 53);
+  --k-color-md-light-secondary: rgb(82 100 81);
+  --k-color-md-light-on-secondary: rgb(235 255 230);
+  --k-color-md-light-secondary-container: rgb(212 232 208);
+  --k-color-md-light-on-secondary-container: rgb(69 86 68);
+  --k-color-md-light-surface-5: rgb(213 223 208);
+  --k-color-md-dark-surface: rgb(12 15 11);
+  --k-color-md-dark-surface-variant: rgb(12 15 11);
+  --k-color-md-dark-surface-1: rgb(16 21 15);
+  --k-color-md-dark-surface-2: rgb(22 27 21);
+  --k-color-md-dark-surface-3: rgb(27 33 26);
+  --k-color-md-dark-surface-4: rgb(32 40 32);
+  --k-color-md-dark-on-surface: rgb(224 232 219);
+  --k-color-md-dark-on-surface-variant: rgb(166 173 162);
+  --k-color-md-dark-outline: rgb(112 120 109);
+  --k-color-md-dark-outline-variant: rgb(66 74 65);
+  --k-color-md-dark-primary: rgb(172 208 169);
+  --k-color-md-dark-on-primary: rgb(40 71 42);
+  --k-color-md-dark-primary-container: rgb(58 90 59);
+  --k-color-md-dark-on-primary-container: rgb(200 237 197);
+  --k-color-md-dark-secondary: rgb(184 204 181);
+  --k-color-md-dark-on-secondary: rgb(52 68 51);
+  --k-color-md-dark-secondary-container: rgb(47 63 47);
+  --k-color-md-dark-on-secondary-container: rgb(177 197 174);
+  --k-color-md-dark-surface-5: rgb(39 48 39);
+}
+.k-md-vibrant .k-color-brand-primary, .k-md-vibrant.k-color-brand-primary, .k-color-brand-primary .k-md-vibrant,.k-md-vibrant {
+  --k-color-md-light-surface: rgb(247 245 255);
+  --k-color-md-light-surface-variant: rgb(202 210 255);
+  --k-color-md-light-surface-1: rgb(239 239 255);
+  --k-color-md-light-surface-2: rgb(228 231 255);
+  --k-color-md-light-surface-3: rgb(221 225 255);
+  --k-color-md-light-surface-4: rgb(213 219 255);
+  --k-color-md-light-on-surface: rgb(35 44 81);
+  --k-color-md-light-on-surface-variant: rgb(81 89 129);
+  --k-color-md-light-outline: rgb(108 117 158);
+  --k-color-md-light-outline-variant: rgb(162 171 215);
+  --k-color-md-light-primary: rgb(0 88 187);
+  --k-color-md-light-on-primary: rgb(240 242 255);
+  --k-color-md-light-primary-container: rgb(108 159 255);
+  --k-color-md-light-on-primary-container: rgb(0 33 79);
+  --k-color-md-light-secondary: rgb(56 83 183);
+  --k-color-md-light-on-secondary: rgb(242 241 255);
+  --k-color-md-light-secondary-container: rgb(198 207 255);
+  --k-color-md-light-on-secondary-container: rgb(32 62 162);
+  --k-color-md-light-surface-5: rgb(202 212 252);
+  --k-color-md-dark-surface: rgb(2 10 47);
+  --k-color-md-dark-surface-variant: rgb(2 10 47);
+  --k-color-md-dark-surface-1: rgb(4 15 56);
+  --k-color-md-dark-surface-2: rgb(8 21 66);
+  --k-color-md-dark-surface-3: rgb(14 27 76);
+  --k-color-md-dark-surface-4: rgb(19 33 86);
+  --k-color-md-dark-on-surface: rgb(225 228 255);
+  --k-color-md-dark-on-surface-variant: rgb(160 169 213);
+  --k-color-md-dark-outline: rgb(107 115 157);
+  --k-color-md-dark-outline-variant: rgb(61 70 108);
+  --k-color-md-dark-primary: rgb(133 173 255);
+  --k-color-md-dark-on-primary: rgb(0 44 101);
+  --k-color-md-dark-primary-container: rgb(108 159 255);
+  --k-color-md-dark-on-primary-container: rgb(0 33 79);
+  --k-color-md-dark-secondary: rgb(127 152 255);
+  --k-color-md-dark-on-secondary: rgb(0 24 94);
+  --k-color-md-dark-secondary-container: rgb(31 61 161);
+  --k-color-md-dark-on-secondary-container: rgb(197 206 255);
+  --k-color-md-dark-surface-5: rgb(25 40 94);
+}
+.k-md-vibrant .k-color-brand-red, .k-md-vibrant.k-color-brand-red, .k-color-brand-red .k-md-vibrant {
+  --k-color-md-light-surface: rgb(255 244 244);
+  --k-color-md-light-surface-variant: rgb(255 198 203);
+  --k-color-md-light-surface-1: rgb(255 236 237);
+  --k-color-md-light-surface-2: rgb(255 225 227);
+  --k-color-md-light-surface-3: rgb(255 218 220);
+  --k-color-md-light-surface-4: rgb(255 210 213);
+  --k-color-md-light-on-surface: rgb(77 33 39);
+  --k-color-md-light-on-surface-variant: rgb(130 76 82);
+  --k-color-md-light-outline: rgb(161 103 109);
+  --k-color-md-light-outline-variant: rgb(222 156 162);
+  --k-color-md-light-primary: rgb(174 39 30);
+  --k-color-md-light-on-primary: rgb(255 239 237);
+  --k-color-md-light-primary-container: rgb(255 119 103);
+  --k-color-md-light-on-primary-container: rgb(79 0 1);
+  --k-color-md-light-secondary: rgb(160 54 73);
+  --k-color-md-light-on-secondary: rgb(255 239 239);
+  --k-color-md-light-secondary-container: rgb(255 194 199);
+  --k-color-md-light-on-secondary-container: rgb(133 34 54);
+  --k-color-md-light-surface-5: rgb(251 201 204);
+  --k-color-md-dark-surface: rgb(36 2 8);
+  --k-color-md-dark-surface-variant: rgb(36 2 8);
+  --k-color-md-dark-surface-1: rgb(44 5 12);
+  --k-color-md-dark-surface-2: rgb(54 9 17);
+  --k-color-md-dark-surface-3: rgb(63 13 23);
+  --k-color-md-dark-surface-4: rgb(72 18 28);
+  --k-color-md-dark-on-surface: rgb(255 221 223);
+  --k-color-md-dark-on-surface-variant: rgb(220 154 160);
+  --k-color-md-dark-outline: rgb(160 101 107);
+  --k-color-md-dark-outline-variant: rgb(107 57 63);
+  --k-color-md-dark-primary: rgb(255 142 128);
+  --k-color-md-dark-on-primary: rgb(101 0 2);
+  --k-color-md-dark-primary-container: rgb(255 119 103);
+  --k-color-md-dark-on-primary-container: rgb(79 0 1);
+  --k-color-md-dark-secondary: rgb(254 126 144);
+  --k-color-md-dark-on-secondary: rgb(87 0 25);
+  --k-color-md-dark-secondary-container: rgb(132 33 53);
+  --k-color-md-dark-on-secondary-container: rgb(255 192 198);
+  --k-color-md-dark-surface-5: rgb(81 24 33);
+}
+.k-md-vibrant .k-color-brand-green, .k-md-vibrant.k-color-brand-green, .k-color-brand-green .k-md-vibrant {
+  --k-color-md-light-surface: rgb(221 255 228);
+  --k-color-md-light-surface-variant: rgb(157 228 181);
+  --k-color-md-light-surface-1: rgb(200 253 215);
+  --k-color-md-light-surface-2: rgb(188 246 205);
+  --k-color-md-light-surface-3: rgb(178 241 198);
+  --k-color-md-light-surface-4: rgb(169 236 191);
+  --k-color-md-light-on-surface: rgb(7 54 31);
+  --k-color-md-light-on-surface-variant: rgb(57 100 73);
+  --k-color-md-light-outline: rgb(84 128 99);
+  --k-color-md-light-outline-variant: rgb(137 184 152);
+  --k-color-md-light-primary: rgb(0 106 38);
+  --k-color-md-light-on-primary: rgb(207 255 205);
+  --k-color-md-light-primary-container: rgb(105 252 130);
+  --k-color-md-light-on-primary-container: rgb(0 93 33);
+  --k-color-md-light-secondary: rgb(0 105 62);
+  --k-color-md-light-on-secondary: rgb(203 255 218);
+  --k-color-md-light-secondary-container: rgb(118 242 170);
+  --k-color-md-light-on-secondary-container: rgb(0 89 51);
+  --k-color-md-light-surface-5: rgb(161 230 183);
+  --k-color-md-dark-surface: rgb(0 18 7);
+  --k-color-md-dark-surface-variant: rgb(0 18 7);
+  --k-color-md-dark-surface-1: rgb(0 24 10);
+  --k-color-md-dark-surface-2: rgb(0 31 14);
+  --k-color-md-dark-surface-3: rgb(0 38 19);
+  --k-color-md-dark-surface-4: rgb(0 45 23);
+  --k-color-md-dark-on-surface: rgb(201 249 214);
+  --k-color-md-dark-on-surface-variant: rgb(135 182 150);
+  --k-color-md-dark-outline: rgb(83 127 98);
+  --k-color-md-dark-outline-variant: rgb(37 80 55);
+  --k-color-md-dark-primary: rgb(105 252 130);
+  --k-color-md-dark-on-primary: rgb(0 93 33);
+  --k-color-md-dark-primary-container: rgb(24 191 78);
+  --k-color-md-dark-on-primary-container: rgb(0 47 13);
+  --k-color-md-dark-secondary: rgb(118 242 170);
+  --k-color-md-dark-on-secondary: rgb(0 89 51);
+  --k-color-md-dark-secondary-container: rgb(0 109 64);
+  --k-color-md-dark-on-secondary-container: rgb(226 255 232);
+  --k-color-md-dark-surface-5: rgb(5 55 28);
+}
+.k-md-monochrome,:root.k-md-monochrome, :root .k-md-monochrome {
+  --k-color-md-light-surface: rgb(249 249 249);
+  --k-color-md-light-surface-variant: rgb(218 218 218);
+  --k-color-md-light-surface-1: rgb(243 243 243);
+  --k-color-md-light-surface-2: rgb(238 238 238);
+  --k-color-md-light-surface-3: rgb(232 232 232);
+  --k-color-md-light-surface-4: rgb(226 226 226);
+  --k-color-md-light-on-surface: rgb(50 50 50);
+  --k-color-md-light-on-surface-variant: rgb(95 95 95);
+  --k-color-md-light-surface-5: rgb(219 219 219);
+  --k-color-md-dark-surface: rgb(14 14 14);
+  --k-color-md-dark-surface-variant: rgb(14 14 14);
+  --k-color-md-dark-surface-1: rgb(19 19 19);
+  --k-color-md-dark-surface-2: rgb(25 25 25);
+  --k-color-md-dark-surface-3: rgb(31 31 31);
+  --k-color-md-dark-surface-4: rgb(38 38 38);
+  --k-color-md-dark-on-surface: rgb(229 229 229);
+  --k-color-md-dark-on-surface-variant: rgb(171 171 171);
+  --k-color-md-dark-surface-5: rgb(49 49 49);
+}
+
+@theme {
+  --color-brand-primary: #007aff;
+
+  --color-primary: var(--k-color-primary);
+  --color-md-light-primary: var(--k-color-md-light-primary);
+  --color-md-light-on-primary: var(--k-color-md-light-on-primary);
+  --color-md-light-primary-container: var(--k-color-md-light-primary-container);
+  --color-md-light-on-primary-container: var(
+    --k-color-md-light-on-primary-container
+  );
+  --color-md-light-secondary: var(--k-color-md-light-secondary);
+  --color-md-light-on-secondary: var(--k-color-md-light-on-secondary);
+  --color-md-light-secondary-container: var(
+    --k-color-md-light-secondary-container
+  );
+  --color-md-light-on-secondary-container: var(
+    --k-color-md-light-on-secondary-container
+  );
+  --color-md-light-surface: var(--k-color-md-light-surface);
+  --color-md-light-on-surface: var(--k-color-md-light-on-surface);
+  --color-md-light-surface-variant: var(--k-color-md-light-surface-variant);
+  --color-md-light-on-surface-variant: var(
+    --k-color-md-light-on-surface-variant
+  );
+  --color-md-light-outline: var(--k-color-md-light-outline);
+  --color-md-light-outline-variant: var(--k-color-md-light-outline-variant);
+  --color-md-light-surface-1: var(--k-color-md-light-surface-1);
+  --color-md-light-surface-2: var(--k-color-md-light-surface-2);
+  --color-md-light-surface-3: var(--k-color-md-light-surface-3);
+  --color-md-light-surface-4: var(--k-color-md-light-surface-4);
+  --color-md-light-surface-5: var(--k-color-md-light-surface-5);
+  --color-md-dark-primary: var(--k-color-md-dark-primary);
+  --color-md-dark-on-primary: var(--k-color-md-dark-on-primary);
+  --color-md-dark-primary-container: var(--k-color-md-dark-primary-container);
+  --color-md-dark-on-primary-container: var(
+    --k-color-md-dark-on-primary-container
+  );
+  --color-md-dark-secondary: var(--k-color-md-dark-secondary);
+  --color-md-dark-on-secondary: var(--k-color-md-dark-on-secondary);
+  --color-md-dark-secondary-container: var(
+    --k-color-md-dark-secondary-container
+  );
+  --color-md-dark-on-secondary-container: var(
+    --k-color-md-dark-on-secondary-container
+  );
+  --color-md-dark-surface: var(--k-color-md-dark-surface);
+  --color-md-dark-on-surface: var(--k-color-md-dark-on-surface);
+  --color-md-dark-surface-variant: var(--k-color-md-dark-surface-variant);
+  --color-md-dark-on-surface-variant: var(--k-color-md-dark-on-surface-variant);
+  --color-md-dark-outline: var(--k-color-md-dark-outline);
+  --color-md-dark-outline-variant: var(--k-color-md-dark-outline-variant);
+  --color-md-dark-surface-1: var(--k-color-md-dark-surface-1);
+  --color-md-dark-surface-2: var(--k-color-md-dark-surface-2);
+  --color-md-dark-surface-3: var(--k-color-md-dark-surface-3);
+  --color-md-dark-surface-4: var(--k-color-md-dark-surface-4);
+  --color-md-dark-surface-5: var(--k-color-md-dark-surface-5);
+  --color-ios-light-surface: #efeff4;
+  --color-ios-light-surface-1: #fff;
+  --color-ios-light-surface-1-shade: #f1f1f5;
+  --color-ios-light-surface-1-tint: #fff;
+  --color-ios-light-surface-2: #f7f7f8;
+  --color-ios-light-surface-3: #fff;
+  --color-ios-dark-surface: #000;
+  --color-ios-dark-surface-1: #1c1c1d;
+  --color-ios-dark-surface-1-shade: #060606;
+  --color-ios-dark-surface-1-tint: #444447;
+  --color-ios-dark-surface-2: #121212;
+  --color-ios-dark-surface-3: #1c1c1d;
+  --color-ios-light-surface-variant: #f4f4f4;
+  --color-ios-dark-surface-variant: #232323;
+  --color-ios-primary: var(--k-color-ios-primary);
+  --color-ios-primary-tint: var(--k-color-ios-primary-tint);
+  --color-ios-primary-shade: var(--k-color-ios-primary-shade);
+
+  --color-ios-hover-highlight: rgba(255, 255, 255, 0.5);
+}
+.dark {
+  --color-ios-hover-highlight: rgba(255, 255, 255, 0.3);
+}
+
+[class*='k-color-brand-'],
+[class*='k-color-brand-'].k-md-vibrant,
+[class*='k-color-brand-'] .k-md-vibrant,
+.k-md-vibrant [class*='k-color-brand-'],
+[class*='k-color-brand-'].k-md-monochrome,
+[class*='k-color-brand-'] .k-md-monochrome,
+.k-md-monochrome [class*='k-color-brand-'] {
+  --color-primary: var(--k-color-primary);
+  --color-md-light-primary: var(--k-color-md-light-primary);
+  --color-md-light-on-primary: var(--k-color-md-light-on-primary);
+  --color-md-light-primary-container: var(--k-color-md-light-primary-container);
+  --color-md-light-on-primary-container: var(
+    --k-color-md-light-on-primary-container
+  );
+  --color-md-light-secondary: var(--k-color-md-light-secondary);
+  --color-md-light-on-secondary: var(--k-color-md-light-on-secondary);
+  --color-md-light-secondary-container: var(
+    --k-color-md-light-secondary-container
+  );
+  --color-md-light-on-secondary-container: var(
+    --k-color-md-light-on-secondary-container
+  );
+  --color-md-light-surface: var(--k-color-md-light-surface);
+  --color-md-light-on-surface: var(--k-color-md-light-on-surface);
+  --color-md-light-surface-variant: var(--k-color-md-light-surface-variant);
+  --color-md-light-on-surface-variant: var(
+    --k-color-md-light-on-surface-variant
+  );
+  --color-md-light-outline: var(--k-color-md-light-outline);
+  --color-md-light-outline-variant: var(--k-color-md-light-outline-variant);
+  --color-md-light-surface-1: var(--k-color-md-light-surface-1);
+  --color-md-light-surface-2: var(--k-color-md-light-surface-2);
+  --color-md-light-surface-3: var(--k-color-md-light-surface-3);
+  --color-md-light-surface-4: var(--k-color-md-light-surface-4);
+  --color-md-light-surface-5: var(--k-color-md-light-surface-5);
+  --color-md-dark-primary: var(--k-color-md-dark-primary);
+  --color-md-dark-on-primary: var(--k-color-md-dark-on-primary);
+  --color-md-dark-primary-container: var(--k-color-md-dark-primary-container);
+  --color-md-dark-on-primary-container: var(
+    --k-color-md-dark-on-primary-container
+  );
+  --color-md-dark-secondary: var(--k-color-md-dark-secondary);
+  --color-md-dark-on-secondary: var(--k-color-md-dark-on-secondary);
+  --color-md-dark-secondary-container: var(
+    --k-color-md-dark-secondary-container
+  );
+  --color-md-dark-on-secondary-container: var(
+    --k-color-md-dark-on-secondary-container
+  );
+  --color-md-dark-surface: var(--k-color-md-dark-surface);
+  --color-md-dark-on-surface: var(--k-color-md-dark-on-surface);
+  --color-md-dark-surface-variant: var(--k-color-md-dark-surface-variant);
+  --color-md-dark-on-surface-variant: var(--k-color-md-dark-on-surface-variant);
+  --color-md-dark-outline: var(--k-color-md-dark-outline);
+  --color-md-dark-outline-variant: var(--k-color-md-dark-outline-variant);
+  --color-md-dark-surface-1: var(--k-color-md-dark-surface-1);
+  --color-md-dark-surface-2: var(--k-color-md-dark-surface-2);
+  --color-md-dark-surface-3: var(--k-color-md-dark-surface-3);
+  --color-md-dark-surface-4: var(--k-color-md-dark-surface-4);
+  --color-md-dark-surface-5: var(--k-color-md-dark-surface-5);
+  --color-ios-primary: var(--k-color-ios-primary);
+  --color-ios-primary-tint: var(--k-color-ios-primary-tint);
+  --color-ios-primary-shade: var(--k-color-ios-primary-shade);
+}
+
+@theme {
+  --color-ios-light-glass: rgba(255, 255, 255, 0.75);
+  --color-ios-dark-glass: rgba(50, 50, 50, 0.5);
+
+  /* prettier-ignore */
+  --shadow-ios-light-glass-thumb:
+    inset -3px -3px 0px -3.5px rgba(255, 255, 255, 1),
+    inset 3px 3px 0px -3.5px rgba(255, 255, 255, 1),
+    inset 0px 0px 0px 0.5px rgba(255, 255, 255, 0.5),
+    inset 3px 3px 10px -2px #eee,
+    inset -3px -3px 10px -2px #eee,
+    inset 0 0 5px 1px #fff;
+
+  /* prettier-ignore */
+  --shadow-ios-dark-glass-thumb:
+    inset 3px 3px 0px -3.5px rgba(255, 255, 255, 1),
+    inset -3px -3px 0px -3.5px rgba(255, 255, 255, 1),
+    inset -0.5px -0.5px 0px rgba(255, 255, 255, 0.5),
+    inset 0.5px 0.5px 0px rgba(255, 255, 255, 0.1),
+    inset -3px 3px 0px -3.5px rgba(255, 255, 255, 0.25),
+    inset 0px -5px 0px -3.5px rgba(255, 255, 255, 0.25),
+    inset 0px -5px 5px rgba(255, 255, 255, 0.25);
+
+  /* prettier-ignore */
+  --shadow-ios-light-glass-fab:
+    inset -3px -3px 0px -3.5px #fff,
+    inset 3px 3px 0px -3.5px #fff,
+    inset 0px 0px 0px 0.5px rgba(255, 255, 255, 0.5),
+    inset 3px 3px 10px -2px color-mix(in oklab, var(--color-primary) 100%, black),
+    inset -3px -3px 10px -2px color-mix(in oklab, var(--color-primary) 100%, black),
+    inset 0 0 5px 1px #fff,
+    0 0 15px 4px rgba(0, 0, 0, 0.2);
+
+  /* prettier-ignore */
+  --shadow-ios-dark-glass-fab:
+    inset 3px 3px 0px -3.5px var(--color-primary),
+    inset -3px -3px 0px -3.5px var(--color-primary),
+    inset -0.5px -0.5px 0px rgba(255, 255, 255, 0.5),
+    inset 0.5px 0.5px 0px rgba(255, 255, 255, 0.1),
+    inset -3px 3px 0px -3.5px rgba(255, 255, 255, 0.25),
+    inset 0px -5px 0px -3.5px color-mix(in oklab, var(--color-primary) 50%, transparent 10%),
+    inset 0px -5px 5px color-mix(in oklab, var(--color-primary) 50%, transparent 10%),
+    0 0 15px 4px rgba(0, 0, 0, 0.2);
+
+  /* prettier-ignore */
+  --shadow-ios-light-glass:
+    inset -1px -1px 0px -0.5px rgba(255, 255, 255, 1),
+    inset 1px 1px 0px -0.5px rgba(255, 255, 255, 1),
+    inset 3px 3px 10px -3px #ddd,
+    inset -3px -3px 10px -3px #ddd,
+    inset 0 0 5px 1px #fff,
+    inset 0 0 0 0.5px rgba(0, 0, 0, 0.25),
+    inset 0 0 24px 0 rgba(0, 0, 0, 0.1),
+    0 0 25px 0 rgba(0, 0, 0, 0.2);
+  /* prettier-ignore */
+  --shadow-ios-dark-glass:
+    inset -2px -2px 0.5px -2.5px rgba(255, 255, 255, 0.4),
+    inset 3px 3px 0.5px -3.5px rgba(255, 255, 255, 0.4),
+    inset 2px 2px 0.5px -2px #262626,
+    inset -2px -2px 0.5px -2px #262626,
+    inset 0 0 5px 1px #141414,
+    inset 0 0 0 1px rgba(255, 255, 255, 0.15),
+    inset 0 0 10px 0 rgba(255, 255, 255, 0.075),
+    inset 0 0 24px 0 rgba(255, 255, 255, 0.05),
+    0 0 25px 0 rgba(0, 0, 0, 0.15);
+}
+
+@utility touch-ripple-* {
+  --k-touch-ripple-color: color-mix(
+    in oklab,
+    --value(--color-*) 15%,
+    transparent 0%
+  );
+}
+
+:root {
+  --k-touch-ripple-opacity: 0.15;
+  --k-touch-ripple-black: rgba(0, 0, 0, var(--k-touch-ripple-opacity));
+  --k-touch-ripple-white: rgba(255, 255, 255, var(--k-touch-ripple-opacity));
+  --k-touch-ripple-color: var(--k-touch-ripple-black);
+}
+.k-touch-ripple-wave {
+  left: 0;
+  top: 0;
+  position: absolute !important;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: -1;
+  padding: 0;
+  margin: 0;
+  font-size: 0;
+  transform: translate3d(0px, 0px, 0) scale(0);
+  background-color: var(--k-touch-ripple-color);
+  animation: k-touch-ripple-in 200ms forwards;
+  display: block !important;
+  &.k-touch-ripple-wave-out {
+    transform: var(--k-ripple-transform);
+    animation: k-touch-ripple-out 300ms forwards;
+  }
+}
+@keyframes k-touch-ripple-in {
+  from {
+    transform: translate3d(0px, 0px, 0) scale(0);
+  }
+  to {
+    transform: var(--k-ripple-transform);
+  }
+}
+@keyframes k-touch-ripple-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+    opacity: 0;
+  }
+}
+
+@custom-variant ios {
+  &:where(.k-ios *) {
+    @slot;
+  }
+}
+@custom-variant material {
+  &:where(.k-material *) {
+    @slot;
+  }
+}
+
+.k-ios-preloader > span {
+  animation: k-ios-preloader-spin 1s steps(8, end) infinite;
+}
+
+.k-material-preloader > span {
+  animation: k-material-preloader-rotate 1.4s linear infinite;
+}
+
+.k-material-preloader circle {
+  stroke-dasharray: 100px;
+  stroke-dashoffset: 80px;
+  stroke-width: 4;
+  transform: rotate(-90deg);
+  transform-origin: 18px 18px;
+  animation: k-material-preloader-circle-rotate 5.6s ease-in-out infinite;
+}
+
+@keyframes k-ios-preloader-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes k-material-preloader-rotate {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes k-material-preloader-circle-rotate {
+  0% {
+    transform: rotate(-90deg);
+    stroke-dashoffset: 100px;
+  }
+
+  12.50% {
+    transform: rotate(-90deg);
+    stroke-dashoffset: 25px;
+  }
+
+  25% {
+    transform: rotate(180deg);
+    stroke-dashoffset: 100px;
+  }
+
+  25.10% {
+    transform: rotate(-180deg);
+    stroke-dashoffset: 100px;
+  }
+
+  37.50% {
+    transform: rotate(-180deg);
+    stroke-dashoffset: 25px;
+  }
+
+  50% {
+    transform: rotate(90deg);
+    stroke-dashoffset: 100px;
+  }
+
+  50.10% {
+    transform: rotate(90deg);
+    stroke-dashoffset: 100px;
+  }
+
+  62.50% {
+    transform: rotate(90deg);
+    stroke-dashoffset: 25px;
+  }
+
+  75% {
+    transform: rotate(360deg);
+    stroke-dashoffset: 100px;
+  }
+
+  75.10% {
+    transform: rotate(0deg);
+    stroke-dashoffset: 100px;
+  }
+
+  87.50% {
+    transform: rotate(0deg);
+    stroke-dashoffset: 25px;
+  }
+
+  100% {
+    transform: rotate(270deg);
+    stroke-dashoffset: 100px;
+  }
+}
+
+@utility hairline-* {
+  --k-hairline-color: --value(--color-*, [color], 'transparent');
+}
+
+.hairline-t::before,
+.hairline-l::before,
+.hairline-b::after,
+.hairline-r::after {
+  position: absolute;
+  background-color: var(--k-hairline-color, rgba(0, 0, 0, 0.2));
+  transition-duration: var(--k-hairline-transition-duration);
+  content: '';
+  z-index: 10;
+}
+@utility hairline-t {
+  &::before {
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 1px;
+    transform-origin: center top;
+    transform: scaleY(calc(1 / var(--k-device-pixel-ratio, 1)));
+  }
+}
+@utility hairline-t-none {
+  &::before {
+    display: none;
+  }
+  :not(.hairline-l)::before {
+    display: none;
+  }
+}
+@utility hairline-t-scale {
+  &::before {
+    transform: scaleY(2);
+  }
+}
+@utility hairline-l {
+  &::before {
+    left: 0;
+    top: 0;
+    width: 1px;
+    height: 100%;
+    transform-origin: left center;
+    transform: scaleX(calc(1 / var(--k-device-pixel-ratio, 1)));
+  }
+}
+@utility hairline-l-none {
+  &::before {
+    display: none;
+  }
+  :not(.hairline-l)::before {
+    display: none;
+  }
+}
+
+@utility hairline-l-scale {
+  &::before {
+    transform: scaleX(2);
+  }
+}
+@utility hairline-b {
+  &::after {
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    height: 1px;
+    transform-origin: center bottom;
+    transform: scaleY(calc(1 / var(--k-device-pixel-ratio, 1)));
+  }
+}
+@utility hairline-b-scale {
+  &::after {
+    transform: scaleY(2);
+  }
+}
+@utility hairline-b-none {
+  &::after {
+    display: none;
+  }
+  :not(.hairline-b)::after {
+    display: none;
+  }
+  > * > *::after {
+    display: none;
+  }
+}
+@utility last-child-hairline-b-none {
+  > *:last-child {
+    &::after {
+      display: none;
+    }
+    :not(.hairline-b)::after {
+      display: none;
+    }
+    > * > *::after {
+      display: none;
+    }
+    > *::after {
+      display: none;
+    }
+  }
+}
+@utility last-child-hairline-r-none {
+  > *:last-child {
+    &::after {
+      display: none;
+    }
+    :not(.hairline-b)::after {
+      display: none;
+    }
+    > * > *::after {
+      display: none;
+    }
+    > *::after {
+      display: none;
+    }
+  }
+}
+@utility first-child-hairline-r-none {
+  > *:first-child {
+    &::after {
+      display: none;
+    }
+    :not(.hairline-b)::after {
+      display: none;
+    }
+    > * > *::after {
+      display: none;
+    }
+    > *::after {
+      display: none;
+    }
+  }
+}
+@utility hairline-r {
+  &::after {
+    top: 0;
+    right: 0;
+    width: 1px;
+    height: 100%;
+    transform-origin: right center;
+    transform: scaleX(calc(1 / var(--k-device-pixel-ratio, 1)));
+  }
+}
+@utility hairline-r-none {
+  &::after {
+    display: none;
+  }
+  :not(.hairline-r)::after {
+    display: none;
+  }
+}
+@utility hairline-r-scale {
+  &::after {
+    transform: scaleX(2);
+  }
+}
+
+@custom-variant range-thumb {
+  &::-webkit-slider-thumb,
+  &::-moz-range-thumb {
+    @slot;
+  }
+}
+@custom-variant range-track {
+  &::-webkit-slider-runnable-track,
+  &::-moz-range-track {
+    @slot;
+  }
+}
+
+:root {
+  --k-safe-area-left: 0px;
+  --k-safe-area-right: 0px;
+  --k-safe-area-top: 0px;
+  --k-safe-area-bottom: 0px;
+}
+
+@supports (left: env(safe-area-inset-left)) {
+  .safe-areas {
+    --k-safe-area-left: env(safe-area-inset-left);
+    --k-safe-area-right: env(safe-area-inset-right);
+    --k-safe-area-top: env(safe-area-inset-top);
+    --k-safe-area-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+@utility no-safe-areas {
+  --k-safe-area-left: 0px;
+  --k-safe-area-right: 0px;
+  --k-safe-area-top: 0px;
+  --k-safe-area-bottom: 0px;
+}
+@utility no-safe-areas-top {
+  --k-safe-area-top: 0px;
+}
+@utility no-safe-areas-left {
+  --k-safe-area-left: 0px;
+}
+@utility no-safe-areas-right {
+  --k-safe-area-right: 0px;
+}
+@utility no-safe-areas-bottom {
+  --k-safe-area-bottom: 0px;
+}
+
+/* SINGLE VALUES */
+
+@utility pl-safe {
+  padding-left: var(--k-safe-area-left);
+}
+@utility ps-safe {
+  padding-inline-start: var(--k-safe-area-left);
+}
+@utility pr-safe {
+  padding-right: var(--k-safe-area-right);
+}
+@utility pe-safe {
+  padding-inline-end: var(--k-safe-area-right);
+}
+@utility pt-safe {
+  padding-top: var(--k-safe-area-top);
+}
+@utility pb-safe {
+  padding-bottom: var(--k-safe-area-bottom);
+}
+@utility ml-safe {
+  margin-left: var(--k-safe-area-left);
+}
+@utility ms-safe {
+  margin-inline-start: var(--k-safe-area-left);
+}
+@utility mr-safe {
+  margin-right: var(--k-safe-area-right);
+}
+@utility me-safe {
+  margin-inline-end: var(--k-safe-area-right);
+}
+@utility mt-safe {
+  margin-top: var(--k-safe-area-top);
+}
+@utility mb-safe {
+  margin-bottom: var(--k-safe-area-bottom);
+}
+
+/* INSET */
+
+@utility left-safe {
+  left: var(--k-safe-area-left);
+}
+@utility start-safe {
+  inset-inline-start: var(--k-safe-area-left);
+}
+@utility right-safe {
+  right: var(--k-safe-area-right);
+}
+@utility end-safe {
+  inset-inline-end: var(--k-safe-area-right);
+}
+@utility top-safe {
+  top: var(--k-safe-area-top);
+}
+@utility bottom-safe {
+  bottom: var(--k-safe-area-bottom);
+}
+
+@utility left-safe-* {
+  left: calc(var(--k-safe-area-left) + var(--spacing) * --value(number));
+}
+@utility start-safe-* {
+  inset-inline-start: calc(
+    var(--k-safe-area-left) + var(--spacing) * --value(number)
+  );
+}
+@utility right-safe-* {
+  right: calc(var(--k-safe-area-right) + var(--spacing) * --value(number));
+}
+@utility end-safe-* {
+  inset-inline-end: calc(
+    var(--k-safe-area-right) + var(--spacing) * --value(number)
+  );
+}
+@utility top-safe-* {
+  top: calc(var(--k-safe-area-top) + var(--spacing) * --value(number));
+}
+@utility bottom-safe-* {
+  bottom: calc(var(--k-safe-area-bottom) + var(--spacing) * --value(number));
+}
+
+/* WITH VALUES */
+
+@utility ml-safe-* {
+  margin-left: calc(var(--k-safe-area-left) + var(--spacing) * --value(number));
+}
+@utility ms-safe-* {
+  margin-inline-start: calc(
+    var(--k-safe-area-left) + var(--spacing) * --value(number)
+  );
+}
+@utility mr-safe-* {
+  margin-right: calc(
+    var(--k-safe-area-right) + var(--spacing) * --value(number)
+  );
+}
+@utility me-safe-* {
+  margin-inline-end: calc(
+    var(--k-safe-area-right) + var(--spacing) * --value(number)
+  );
+}
+@utility mx-safe-* {
+  margin-left: calc(var(--k-safe-area-left) + var(--spacing) * --value(number));
+  margin-right: calc(
+    var(--k-safe-area-right) + var(--spacing) * --value(number)
+  );
+}
+@utility mt-safe-* {
+  margin-top: calc(var(--k-safe-area-top) + var(--spacing) * --value(number));
+}
+@utility mb-safe-* {
+  margin-bottom: calc(
+    var(--k-safe-area-bottom) + var(--spacing) * --value(number)
+  );
+}
+@utility my-safe-* {
+  margin-top: calc(var(--k-safe-area-top) + var(--spacing) * --value(number));
+  margin-bottom: calc(
+    var(--k-safe-area-bottom) + var(--spacing) * --value(number)
+  );
+}
+
+@utility pl-safe-* {
+  padding-left: calc(
+    var(--k-safe-area-left) + var(--spacing) * --value(number)
+  );
+}
+@utility ps-safe-* {
+  padding-inline-start: calc(
+    var(--k-safe-area-left) + var(--spacing) * --value(number)
+  );
+}
+@utility pr-safe-* {
+  padding-right: calc(
+    var(--k-safe-area-right) + var(--spacing) * --value(number)
+  );
+}
+@utility pe-safe-* {
+  padding-inline-end: calc(
+    var(--k-safe-area-right) + var(--spacing) * --value(number)
+  );
+}
+@utility px-safe-* {
+  padding-left: calc(
+    var(--k-safe-area-left) + var(--spacing) * --value(number)
+  );
+  padding-right: calc(
+    var(--k-safe-area-right) + var(--spacing) * --value(number)
+  );
+}
+@utility pt-safe-* {
+  padding-top: calc(var(--k-safe-area-top) + var(--spacing) * --value(number));
+}
+@utility pb-safe-* {
+  padding-bottom: calc(
+    var(--k-safe-area-bottom) + var(--spacing) * --value(number)
+  );
+}
+@utility py-safe-* {
+  padding-top: calc(var(--k-safe-area-top) + var(--spacing) * --value(number));
+  padding-bottom: calc(
+    var(--k-safe-area-bottom) + var(--spacing) * --value(number)
+  );
+}
+
+
+
+</style>
+
+<div id="root"></div>
+
+<!-- React, ReactDOM and Konsta are ESM bundles in vendor/ and import each
+     other by bare specifier, so the specifiers are mapped to the vendored
+     files. The map must come before any module that uses it. -->
+<script type="importmap">
+{
+  "imports": {
+    "react": "./vendor/react.mjs",
+    "react/jsx-runtime": "./vendor/react-jsx-runtime.mjs",
+    "react-dom": "./vendor/react-dom.mjs",
+    "react-dom/client": "./vendor/react-dom-client.mjs",
+    "konsta/react": "./vendor/konsta-react.mjs"
+  }
+}
+</script>
+<script type="module" src="src/main.jsx"></script>
