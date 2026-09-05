@@ -62,6 +62,21 @@ export const HAPTICS = {
       }
     ]
   }
+,
+
+  periodOn: { events: [{ intensity: 0.65, sharpness: 0.85, time: 0, type: 'transient' }] }
+,
+
+  periodOff: { events: [{ intensity: 0.35, sharpness: 0.25, time: 0, type: 'transient' }] }
+,
+
+  bump: { events: [{ intensity: 0.4, sharpness: 0.6, time: 0, type: 'transient' }] }
+,
+
+  goalSaved: { events: [{ intensity: 0.9, sharpness: 0.7, time: 0, type: 'transient' }, { intensity: 0.7, sharpness: 0.5, time: 0.09, type: 'transient' }, { attackTime: 0.01, duration: 0.22, intensity: 0.45, releaseTime: 0.18, sharpness: 0.2, time: 0.1, type: 'continuous' }] }
+,
+
+  removed: { events: [{ intensity: 1, sharpness: 0.35, time: 0, type: 'transient' }, { duration: 0.16, intensity: 0.4, releaseTime: 0.14, sharpness: 0.15, time: 0.02, type: 'continuous' }] }
 };
 
 const channel =
