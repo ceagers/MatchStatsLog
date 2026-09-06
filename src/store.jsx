@@ -8,7 +8,13 @@ export const PLAYER_NAMES = [
   'OO', 'MHB', 'IC', 'TF', 'LP', 'EB',
 ];
 
-const STORE_KEY = 'matchday.v1';
+// Period states: 0 = unset (grey), 1 = played (green), 2 = flagged (red).
+export const PERIOD_UNSET = 0;
+export const PERIOD_GREEN = 1;
+export const PERIOD_RED = 2;
+
+const STORE_KEY = 'matchday.v2';
+const LEGACY_KEY = 'matchday.v1';
 
 function todayISO() {
   const now = new Date();
@@ -17,16 +23,25 @@ function todayISO() {
 }
 
 function makePlayer(name) {
-  return { name, periods: [false, false, false, false, false, false, false, false], goals: 0, assists: 0 };
+  return { name, periods: [0, 0, 0, 0, 0, 0, 0, 0], goals: 0, assists: 0 };
 }
 
 export function makeMatch() {
   return {
     opposition: '',
+    homeAway: '',
     date: todayISO(),
+    result: '',
     players: PLAYER_NAMES.map(makePlayer),
     goalTimes: [],
   };
+}
+
+// Older records stored booleans; true becomes green.
+function toPeriodState(value) {
+  if (value === true || value === 1) return PERIOD_GREEN;
+  if (value === 2) return PERIOD_RED;
+  return PERIOD_UNSET;
 }
 
 // Defensive: stored data from an older shape must never crash the launch.
@@ -35,16 +50,19 @@ function normalise(raw) {
   if (!raw || typeof raw !== 'object') return base;
 
   const storedPlayers = Array.isArray(raw.players) ? raw.players : [];
-  const players = PLAYER_NAMES.map((name) => {
-    const found = storedPlayers.find((p) => p && p.name === name);
-    if (!found) return makePlayer(name);
-    const periods = Array.isArray(found.periods) ? found.periods : [];
-    return {
+  const seen = new Set();
+  const players = [];
+  storedPlayers.forEach((p) => {
+    const name = p && typeof p.name === 'string' ? p.name.trim() : '';
+    if (!name || seen.has(name.toLowerCase())) return;
+    seen.add(name.toLowerCase());
+    const periods = Array.isArray(p.periods) ? p.periods : [];
+    players.push({
       name,
-      periods: Array.from({ length: 8 }, (_, i) => periods[i] === true),
-      goals: Number.isFinite(found.goals) ? found.goals : 0,
-      assists: Number.isFinite(found.assists) ? found.assists : 0,
-    };
+      periods: Array.from({ length: 8 }, (_, i) => toPeriodState(periods[i])),
+      goals: Number.isFinite(p.goals) ? p.goals : 0,
+      assists: Number.isFinite(p.assists) ? p.assists : 0,
+    });
   });
 
   const goalTimes = (Array.isArray(raw.goalTimes) ? raw.goalTimes : []).map((g, i) => ({
@@ -57,15 +75,17 @@ function normalise(raw) {
 
   return {
     opposition: typeof raw.opposition === 'string' ? raw.opposition : '',
+    homeAway: typeof raw.homeAway === 'string' ? raw.homeAway : '',
     date: typeof raw.date === 'string' && raw.date ? raw.date.slice(0, 10) : base.date,
-    players,
+    result: typeof raw.result === 'string' ? raw.result : '',
+    players: players.length ? players : base.players,
     goalTimes,
   };
 }
 
 function loadMatch() {
   try {
-    const raw = localStorage.getItem(STORE_KEY);
+    const raw = localStorage.getItem(STORE_KEY) || localStorage.getItem(LEGACY_KEY);
     return raw ? normalise(JSON.parse(raw)) : makeMatch();
   } catch {
     return makeMatch();
@@ -94,17 +114,41 @@ export function MatchProvider({ children }) {
 
     setOpposition: (opposition) => setMatch((m) => ({ ...m, opposition })),
 
+    setHomeAway: (homeAway) => setMatch((m) => ({ ...m, homeAway })),
+
     setDate: (date) => setMatch((m) => ({ ...m, date })),
 
-    togglePeriod: (name, index) =>
+    setResult: (result) => setMatch((m) => ({ ...m, result })),
+
+    // Tapping a period cycles grey -> green -> red -> grey.
+    cyclePeriod: (name, index) =>
       setMatch((m) => ({
         ...m,
         players: m.players.map((p) =>
           p.name === name
-            ? { ...p, periods: p.periods.map((on, i) => (i === index ? !on : on)) }
+            ? { ...p, periods: p.periods.map((s, i) => (i === index ? (s + 1) % 3 : s)) }
             : p
         ),
       })),
+
+    clearPeriods: (name) =>
+      setMatch((m) => ({
+        ...m,
+        players: m.players.map((p) =>
+          p.name === name ? { ...p, periods: p.periods.map(() => PERIOD_UNSET) } : p
+        ),
+      })),
+
+    addPlayer: (rawName) =>
+      setMatch((m) => {
+        const name = (rawName || '').trim();
+        if (!name) return m;
+        if (m.players.some((p) => p.name.toLowerCase() === name.toLowerCase())) return m;
+        return { ...m, players: [...m.players, makePlayer(name)] };
+      }),
+
+    removePlayer: (name) =>
+      setMatch((m) => ({ ...m, players: m.players.filter((p) => p.name !== name) })),
 
     bump: (name, field, delta) =>
       setMatch((m) => ({
@@ -145,7 +189,9 @@ export function MatchProvider({ children }) {
         };
       }),
 
-    resetMatch: () => setMatch(makeMatch()),
+    // Keep whatever squad the user has built up; clear everything else.
+    resetMatch: () =>
+      setMatch((m) => ({ ...makeMatch(), players: m.players.map((p) => makePlayer(p.name)) })),
   };
 
   return <MatchContext.Provider value={value}>{children}</MatchContext.Provider>;

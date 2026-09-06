@@ -30,10 +30,19 @@ export default function GoalLoggerScreen() {
     ? match.goalTimes.find((g) => g.id === pendingDelete)
     : null;
 
+  // The squad can change while this screen is open — keep the pickers valid.
+  const activeScorer = names.includes(scorer) ? scorer : names[0] || '';
+  const activeAssist = names.includes(assist) ? assist : '';
+
   const save = () => {
-    if (!scorer) return;
+    if (!activeScorer) return;
     haptic('goalSaved');
-    addGoal({ minute: Number(minute), scorer, assist, notes: notes.trim() });
+    addGoal({
+      minute: Number(minute),
+      scorer: activeScorer,
+      assist: activeAssist,
+      notes: notes.trim(),
+    });
     setAssist('');
     setNotes('');
     setSaved(true);
@@ -61,7 +70,7 @@ export default function GoalLoggerScreen() {
           label="Scorer"
           type="select"
           dropdown
-          value={scorer}
+          value={activeScorer}
           onChange={(e) => setScorer(e.target.value)}
         >
           {names.map((n) => (
@@ -73,7 +82,7 @@ export default function GoalLoggerScreen() {
           label="Assist"
           type="select"
           dropdown
-          value={assist}
+          value={activeAssist}
           onChange={(e) => setAssist(e.target.value)}
         >
           <option value="">None</option>
@@ -94,7 +103,7 @@ export default function GoalLoggerScreen() {
       </List>
 
       <Block>
-        <Button large rounded onClick={save} disabled={!scorer}>
+        <Button large rounded onClick={save} disabled={!activeScorer}>
           Save Goal
         </Button>
       </Block>
