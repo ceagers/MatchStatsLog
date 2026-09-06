@@ -15,6 +15,7 @@ export const PERIOD_RED = 2;
 
 const STORE_KEY = 'matchday.v2';
 const LEGACY_KEY = 'matchday.v1';
+const SAVED_KEY = 'matchday.saved.v1';
 
 function todayISO() {
   const now = new Date();
@@ -32,6 +33,9 @@ export function makeMatch() {
     homeAway: '',
     date: todayISO(),
     result: '',
+    // Set once the match has been written to history, so saving again updates
+    // that same record instead of piling up duplicates.
+    savedId: null,
     players: PLAYER_NAMES.map(makePlayer),
     goalTimes: [],
   };
@@ -78,6 +82,7 @@ function normalise(raw) {
     homeAway: typeof raw.homeAway === 'string' ? raw.homeAway : '',
     date: typeof raw.date === 'string' && raw.date ? raw.date.slice(0, 10) : base.date,
     result: typeof raw.result === 'string' ? raw.result : '',
+    savedId: typeof raw.savedId === 'string' ? raw.savedId : null,
     players: players.length ? players : base.players,
     goalTimes,
   };
@@ -92,6 +97,24 @@ function loadMatch() {
   }
 }
 
+// Saved match history: newest first, each an immutable snapshot of a match.
+function loadSaved() {
+  try {
+    const raw = localStorage.getItem(SAVED_KEY);
+    const list = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(list)) return [];
+    return list
+      .filter((r) => r && typeof r === 'object' && typeof r.id === 'string')
+      .map((r) => ({
+        id: r.id,
+        savedAt: typeof r.savedAt === 'string' ? r.savedAt : new Date().toISOString(),
+        match: normalise(r.match),
+      }));
+  } catch {
+    return [];
+  }
+}
+
 const MatchContext = createContext(null);
 
 export function useMatch() {
@@ -100,6 +123,7 @@ export function useMatch() {
 
 export function MatchProvider({ children }) {
   const [match, setMatch] = useState(loadMatch);
+  const [savedMatches, setSavedMatches] = useState(loadSaved);
 
   useEffect(() => {
     try {
@@ -109,8 +133,17 @@ export function MatchProvider({ children }) {
     }
   }, [match]);
 
+  useEffect(() => {
+    try {
+      localStorage.setItem(SAVED_KEY, JSON.stringify(savedMatches));
+    } catch {
+      /* storage full or unavailable — the app keeps working in memory */
+    }
+  }, [savedMatches]);
+
   const value = {
     match,
+    savedMatches,
 
     setOpposition: (opposition) => setMatch((m) => ({ ...m, opposition })),
 
@@ -192,6 +225,33 @@ export function MatchProvider({ children }) {
     // Keep whatever squad the user has built up; clear everything else.
     resetMatch: () =>
       setMatch((m) => ({ ...makeMatch(), players: m.players.map((p) => makePlayer(p.name)) })),
+
+    // Write the current match into history. Re-saving a match that came from
+    // history updates that record rather than creating a second copy.
+    saveCurrentMatch: () => {
+      const id = match.savedId || crypto.randomUUID();
+      const savedAt = new Date().toISOString();
+      const snapshot = JSON.parse(JSON.stringify({ ...match, savedId: id }));
+      setSavedMatches((list) =>
+        list.some((r) => r.id === id)
+          ? list.map((r) => (r.id === id ? { id, savedAt, match: snapshot } : r))
+          : [{ id, savedAt, match: snapshot }, ...list]
+      );
+      setMatch((m) => ({ ...m, savedId: id }));
+      return id;
+    },
+
+    deleteSavedMatch: (id) => {
+      setSavedMatches((list) => list.filter((r) => r.id !== id));
+      setMatch((m) => (m.savedId === id ? { ...m, savedId: null } : m));
+    },
+
+    // Bring a saved match back as the live match, so it can be edited again.
+    restoreSavedMatch: (id) => {
+      const record = savedMatches.find((r) => r.id === id);
+      if (!record) return;
+      setMatch({ ...normalise(record.match), savedId: id });
+    },
   };
 
   return <MatchContext.Provider value={value}>{children}</MatchContext.Provider>;
@@ -207,5 +267,18 @@ export function formatDate(iso) {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
+  });
+}
+
+/// "14 Sep, 19:30" for a saved-at timestamp.
+export function formatSavedAt(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleString(undefined, {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
   });
 }

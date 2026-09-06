@@ -77,6 +77,9 @@ export const HAPTICS = {
 ,
 
   removed: { events: [{ intensity: 1, sharpness: 0.35, time: 0, type: 'transient' }, { duration: 0.16, intensity: 0.4, releaseTime: 0.14, sharpness: 0.15, time: 0.02, type: 'continuous' }] }
+,
+
+  archived: { events: [{ intensity: 0.55, sharpness: 0.5, time: 0, type: 'transient' }, { intensity: 0.85, sharpness: 0.75, time: 0.09, type: 'transient' }, { attackTime: 0.01, duration: 0.18, intensity: 0.35, releaseTime: 0.15, sharpness: 0.2, time: 0.1, type: 'continuous' }] }
 };
 
 const channel =

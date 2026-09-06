@@ -7,6 +7,7 @@ import { Icon } from './icons.js';
 import MatchInfoScreen from './screens/MatchInfoScreen.jsx';
 import PlayersScreen from './screens/PlayersScreen.jsx';
 import GoalLoggerScreen from './screens/GoalLoggerScreen.jsx';
+import SavedMatchesScreen from './screens/SavedMatchesScreen.jsx';
 
 export default function AppScreen() {
   const [tab, setTab] = useState('info');
@@ -16,6 +17,7 @@ export default function AppScreen() {
       {tab === 'info' && <MatchInfoScreen onNext={() => setTab('players')} />}
       {tab === 'players' && <PlayersScreen onNext={() => setTab('goals')} />}
       {tab === 'goals' && <GoalLoggerScreen />}
+      {tab === 'saved' && <SavedMatchesScreen />}
 
       <Tabbar labels icons className="left-0 bottom-0 fixed">
         <ToolbarPane>
@@ -36,6 +38,12 @@ export default function AppScreen() {
             onClick={() => setTab('goals')}
             icon={<Icon name="target" size={28} />}
             label="Goals"
+          />
+          <TabbarLink
+            active={tab === 'saved'}
+            onClick={() => setTab('saved')}
+            icon={<Icon name="archive" size={28} />}
+            label="Saved"
           />
         </ToolbarPane>
       </Tabbar>
