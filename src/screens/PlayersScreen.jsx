@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
   Page, Navbar, Block, BlockTitle, List, ListInput, Button, Link, Sheet,
-  Actions, ActionsGroup, ActionsButton, ActionsLabel,
+  Actions, ActionsGroup, ActionsButton, ActionsLabel, Dialog, DialogButton,
 } from 'konsta/react';
 import { useMatch, PERIOD_GREEN, PERIOD_RED } from '../store.jsx';
 import { Icon } from '../icons.js';
@@ -19,6 +19,8 @@ export default function PlayersScreen({ onNext }) {
   const [addOpen, setAddOpen] = useState(false);
   const [newName, setNewName] = useState('');
   const [menuFor, setMenuFor] = useState(null);
+  const [editing, setEditing] = useState(false);
+  const [pendingRemove, setPendingRemove] = useState(null);
 
   const trimmed = newName.trim();
   const duplicate =
@@ -40,6 +42,19 @@ export default function PlayersScreen({ onNext }) {
         large
         transparent
         className="top-0 sticky"
+        left={
+          match.players.length > 0 ? (
+            <Link
+              navbar
+              onClick={() => {
+                haptic('tick');
+                setEditing((on) => !on);
+              }}
+            >
+              {editing ? 'Done' : 'Edit'}
+            </Link>
+          ) : undefined
+        }
         right={
           <Link navbar iconOnly onClick={() => setAddOpen(true)}>
             <Icon name="plus" size={26} />
@@ -48,14 +63,18 @@ export default function PlayersScreen({ onNext }) {
       />
 
       <Block className="!mb-2 text-[13px] text-gray-500 dark:text-gray-400">
-        Tap a period to cycle grey, green, red. Tap a name for more options.
+        {editing
+          ? 'Tap the red button to remove a player from the squad.'
+          : 'Tap a period to cycle grey, green, red. Tap a name for more options.'}
       </Block>
 
-      <Block className="!mt-0 !mb-2 flex items-center gap-4 text-[12px] text-gray-500 dark:text-gray-400">
-        <LegendDot className="bg-green-500" label="Green" />
-        <LegendDot className="bg-red-500" label="Red" />
-        <LegendDot className="bg-black/15 dark:bg-white/25" label="Not set" />
-      </Block>
+      {editing ? null : (
+        <Block className="!mt-0 !mb-2 flex items-center gap-4 text-[12px] text-gray-500 dark:text-gray-400">
+          <LegendDot className="bg-green-500" label="Green" />
+          <LegendDot className="bg-red-500" label="Red" />
+          <LegendDot className="bg-black/15 dark:bg-white/25" label="Not set" />
+        </Block>
+      )}
 
       <BlockTitle>
         Squad{' '}
@@ -63,66 +82,96 @@ export default function PlayersScreen({ onNext }) {
           ({match.players.length})
         </span>
       </BlockTitle>
-      <List strong inset>
-        <li className="flex items-center gap-2 px-3 pt-2 pb-1">
-          <span className="w-11 shrink-0 text-[11px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
-            Player
-          </span>
-          <div className="grid flex-1 grid-cols-8 gap-1">
-            {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
-              <span
-                key={n}
-                className="text-center text-[11px] tabular-nums text-gray-400 dark:text-gray-500"
-              >
-                {n}
+      {match.players.length === 0 ? (
+        <Block strong inset className="text-center text-gray-500 dark:text-gray-400">
+          No squad members yet. Tap + to add one.
+        </Block>
+      ) : (
+        <List strong inset>
+          {editing ? null : (
+            <li className="flex items-center gap-2 px-3 pt-2 pb-1">
+              <span className="w-11 shrink-0 text-[11px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                Player
               </span>
-            ))}
-          </div>
-        </li>
+              <div className="grid flex-1 grid-cols-8 gap-1">
+                {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
+                  <span
+                    key={n}
+                    className="text-center text-[11px] tabular-nums text-gray-400 dark:text-gray-500"
+                  >
+                    {n}
+                  </span>
+                ))}
+              </div>
+            </li>
+          )}
 
-        {match.players.map((player, i) => (
-          <li
-            key={player.name}
-            className={`flex items-center gap-2 px-3 py-1.5 ${
-              i < match.players.length - 1 ? 'hairline-b' : ''
-            }`}
-          >
-            <button
-              onClick={() => {
-                haptic('tick');
-                setMenuFor(player.name);
-              }}
-              className="w-11 shrink-0 truncate text-left text-[15px] font-semibold
-                         transition-opacity duration-150 active:opacity-50"
+          {match.players.map((player, i) => (
+            <li
+              key={player.name}
+              className={`flex items-center gap-2 px-3 py-1.5 ${
+                i < match.players.length - 1 ? 'hairline-b' : ''
+              }`}
             >
-              {player.name}
-            </button>
+              {editing ? (
+                <div className="flex flex-1 items-center gap-3 py-1">
+                  <span className="min-w-0 flex-1 truncate text-[15px] font-semibold">
+                    {player.name}
+                  </span>
+                  <button
+                    onClick={() => {
+                      haptic('tick');
+                      setPendingRemove(player.name);
+                    }}
+                    className="flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-red-500/10
+                               px-3 text-[14px] font-semibold text-red-500
+                               transition-all duration-150 active:scale-95"
+                  >
+                    <Icon name="trash-2" size={16} />
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <button
+                    onClick={() => {
+                      haptic('tick');
+                      setMenuFor(player.name);
+                    }}
+                    className="w-11 shrink-0 truncate text-left text-[15px] font-semibold
+                               transition-opacity duration-150 active:opacity-50"
+                  >
+                    {player.name}
+                  </button>
 
-            <div className="grid flex-1 grid-cols-8 gap-1">
-              {player.periods.map((state, index) => (
-                <button
-                  key={index}
-                  onClick={() => {
-                    const next = (state + 1) % 3;
-                    haptic(
-                      next === PERIOD_GREEN
-                        ? 'periodOn'
-                        : next === PERIOD_RED
-                          ? 'bump'
-                          : 'periodOff'
-                    );
-                    cyclePeriod(player.name, index);
-                  }}
-                  className={`h-9 rounded-lg text-[13px] font-semibold tabular-nums
-                    transition-all duration-150 active:scale-90 ${PERIOD_STYLES[state] || PERIOD_STYLES[0]}`}
-                >
-                  {index + 1}
-                </button>
-              ))}
-            </div>
-          </li>
-        ))}
-      </List>
+                  <div className="grid flex-1 grid-cols-8 gap-1">
+                    {player.periods.map((state, index) => (
+                      <button
+                        key={index}
+                        onClick={() => {
+                          const next = (state + 1) % 3;
+                          haptic(
+                            next === PERIOD_GREEN
+                              ? 'periodOn'
+                              : next === PERIOD_RED
+                                ? 'bump'
+                                : 'periodOff'
+                          );
+                          cyclePeriod(player.name, index);
+                        }}
+                        className={`h-9 rounded-lg text-[13px] font-semibold tabular-nums
+                          transition-all duration-150 active:scale-90 ${PERIOD_STYLES[state] || PERIOD_STYLES[0]}`}
+                      >
+                        {index + 1}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </li>
+          ))}
+        </List>
+      )}
 
       <Block className="mt-6">
         <Button
@@ -181,8 +230,7 @@ export default function PlayersScreen({ onNext }) {
             bold
             className="k-color-brand-red"
             onClick={() => {
-              haptic('removed');
-              if (menuFor) removePlayer(menuFor);
+              setPendingRemove(menuFor);
               setMenuFor(null);
             }}
           >
@@ -193,6 +241,33 @@ export default function PlayersScreen({ onNext }) {
           <ActionsButton onClick={() => setMenuFor(null)}>Cancel</ActionsButton>
         </ActionsGroup>
       </Actions>
+
+      <Dialog
+        opened={pendingRemove !== null}
+        onBackdropClick={() => setPendingRemove(null)}
+        title="Remove player?"
+        content={
+          pendingRemove
+            ? `${pendingRemove} will be taken out of the squad. Goals already logged are kept.`
+            : ''
+        }
+        buttons={
+          <>
+            <DialogButton onClick={() => setPendingRemove(null)}>Cancel</DialogButton>
+            <DialogButton
+              strong
+              onClick={() => {
+                haptic('removed');
+                if (pendingRemove) removePlayer(pendingRemove);
+                if (match.players.length <= 1) setEditing(false);
+                setPendingRemove(null);
+              }}
+            >
+              Remove
+            </DialogButton>
+          </>
+        }
+      />
     </Page>
   );
 }

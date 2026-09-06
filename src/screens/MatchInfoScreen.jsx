@@ -14,6 +14,23 @@ export default function MatchInfoScreen({ onNext }) {
 
   const sortedGoals = [...match.goalTimes].sort((a, b) => a.minute - b.minute);
 
+  // Goals and assists tallied straight from the logged goals, so the table stays
+  // right even for a name that has since left the squad.
+  const tallies = new Map();
+  const tallyFor = (name) => {
+    if (!tallies.has(name)) tallies.set(name, { name, goals: 0, assists: 0 });
+    return tallies.get(name);
+  };
+  match.goalTimes.forEach((g) => {
+    if (g.scorer) tallyFor(g.scorer).goals += 1;
+    if (g.assist) tallyFor(g.assist).assists += 1;
+  });
+  const scorerTable = [...tallies.values()].sort(
+    (a, b) => b.goals - a.goals || b.assists - a.assists || a.name.localeCompare(b.name)
+  );
+  const totalGoals = scorerTable.reduce((n, r) => n + r.goals, 0);
+  const totalAssists = scorerTable.reduce((n, r) => n + r.assists, 0);
+
   // Period 1 broken into the three states, in the order they matter on the day.
   const period1Groups = [
     {
@@ -127,6 +144,39 @@ export default function MatchInfoScreen({ onNext }) {
             )}
           </div>
         ))
+      )}
+
+      <BlockTitle>Goals &amp; Assists by Player</BlockTitle>
+      {scorerTable.length === 0 ? (
+        <Block strong inset className="text-center text-gray-500 dark:text-gray-400">
+          No goals or assists yet.
+        </Block>
+      ) : (
+        <List strong inset>
+          <li className="flex items-center gap-2 px-4 pt-2 pb-1 text-[11px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
+            <span className="min-w-0 flex-1">Player</span>
+            <span className="w-14 text-right">Goals</span>
+            <span className="w-16 text-right">Assists</span>
+          </li>
+          {scorerTable.map((row) => (
+            <li key={row.name} className="flex items-center gap-2 px-4 py-2 hairline-b">
+              <span className="min-w-0 flex-1 truncate text-[15px] font-semibold">
+                {row.name}
+              </span>
+              <span className="w-14 text-right text-[15px] tabular-nums">{row.goals}</span>
+              <span className="w-16 text-right text-[15px] tabular-nums">{row.assists}</span>
+            </li>
+          ))}
+          <li className="flex items-center gap-2 px-4 py-2 text-gray-500 dark:text-gray-400">
+            <span className="min-w-0 flex-1 text-[14px] font-semibold">Total</span>
+            <span className="w-14 text-right text-[15px] font-semibold tabular-nums">
+              {totalGoals}
+            </span>
+            <span className="w-16 text-right text-[15px] font-semibold tabular-nums">
+              {totalAssists}
+            </span>
+          </li>
+        </List>
       )}
 
       <BlockTitle>
