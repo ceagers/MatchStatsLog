@@ -12,9 +12,31 @@ export default function MatchInfoScreen({ onNext }) {
   } = useMatch();
   const [confirmReset, setConfirmReset] = useState(false);
 
-  const p1Green = match.players.filter((p) => p.periods[0] === PERIOD_GREEN).length;
-  const p1Red = match.players.filter((p) => p.periods[0] === PERIOD_RED).length;
   const sortedGoals = [...match.goalTimes].sort((a, b) => a.minute - b.minute);
+
+  // Period 1 broken into the three states, in the order they matter on the day.
+  const period1Groups = [
+    {
+      key: 'starting',
+      label: 'Starting',
+      dot: 'bg-green-500',
+      players: match.players.filter((p) => p.periods[0] === PERIOD_GREEN),
+    },
+    {
+      key: 'subs',
+      label: 'Subs',
+      dot: 'bg-red-500',
+      players: match.players.filter((p) => p.periods[0] === PERIOD_RED),
+    },
+    {
+      key: 'unavailable',
+      label: 'Not Available',
+      dot: 'bg-gray-300 dark:bg-white/25',
+      players: match.players.filter(
+        (p) => p.periods[0] !== PERIOD_GREEN && p.periods[0] !== PERIOD_RED
+      ),
+    },
+  ];
 
   return (
     <Page className="pb-safe-24">
@@ -70,30 +92,41 @@ export default function MatchInfoScreen({ onNext }) {
         ) : null}
       </Block>
 
-      <BlockTitle>
-        Squad — Period 1{' '}
-        <span className="font-normal text-gray-500 dark:text-gray-400">
-          ({p1Green} green · {p1Red} red)
-        </span>
-      </BlockTitle>
+      <BlockTitle>Squad — Period 1</BlockTitle>
       {match.players.length === 0 ? (
         <Block strong inset className="text-center text-gray-500 dark:text-gray-400">
           No squad members yet.
         </Block>
       ) : (
-        <List strong inset>
-          {match.players.map((player, i) => (
-            <li
-              key={player.name}
-              className={`flex items-center justify-between gap-3 px-4 py-2 ${
-                i < match.players.length - 1 ? 'hairline-b' : ''
-              }`}
-            >
-              <span className="truncate text-[15px] font-semibold">{player.name}</span>
-              <PeriodPill state={player.periods[0]} />
-            </li>
-          ))}
-        </List>
+        period1Groups.map((group) => (
+          <div key={group.key}>
+            <BlockTitle className="!mt-4 flex items-center gap-2">
+              <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${group.dot}`} />
+              {group.label}
+              <span className="font-normal text-gray-500 dark:text-gray-400">
+                ({group.players.length})
+              </span>
+            </BlockTitle>
+            {group.players.length === 0 ? (
+              <Block strong inset className="!py-2.5 text-[14px] text-gray-500 dark:text-gray-400">
+                None
+              </Block>
+            ) : (
+              <List strong inset>
+                {group.players.map((player, i) => (
+                  <li
+                    key={player.name}
+                    className={`px-4 py-2 text-[15px] font-semibold ${
+                      i < group.players.length - 1 ? 'hairline-b' : ''
+                    }`}
+                  >
+                    {player.name}
+                  </li>
+                ))}
+              </List>
+            )}
+          </div>
+        ))
       )}
 
       <BlockTitle>
@@ -182,20 +215,5 @@ export default function MatchInfoScreen({ onNext }) {
         }
       />
     </Page>
-  );
-}
-
-function PeriodPill({ state }) {
-  const styles = [
-    'bg-black/5 dark:bg-white/10 text-gray-400 dark:text-gray-500',
-    'bg-green-500 text-white',
-    'bg-red-500 text-white',
-  ];
-  const labels = ['Not set', 'Green', 'Red'];
-  const s = state === PERIOD_GREEN || state === PERIOD_RED ? state : 0;
-  return (
-    <span className={`shrink-0 rounded-full px-2.5 py-1 text-[12px] font-semibold ${styles[s]}`}>
-      {labels[s]}
-    </span>
   );
 }
