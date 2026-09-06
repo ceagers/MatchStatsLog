@@ -15,19 +15,34 @@ export default function PlayersScreen({ onNext }) {
 
       <BlockTitle>Squad</BlockTitle>
       <List strong inset>
+        <li className="flex items-center gap-2 px-3 pt-2 pb-1">
+          <span className="w-11 shrink-0 text-[11px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
+            Player
+          </span>
+          <div className="grid flex-1 grid-cols-8 gap-1">
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
+              <span
+                key={n}
+                className="text-center text-[11px] tabular-nums text-gray-400 dark:text-gray-500"
+              >
+                {n}
+              </span>
+            ))}
+          </div>
+        </li>
+
         {match.players.map((player, i) => (
           <li
             key={player.name}
-            className={`px-4 py-3.5 ${i < match.players.length - 1 ? 'hairline-b' : ''}`}
+            className={`flex items-center gap-2 px-3 py-1.5 ${
+              i < match.players.length - 1 ? 'hairline-b' : ''
+            }`}
           >
-            <div className="flex items-center justify-between">
-              <span className="text-[17px] font-semibold">{player.name}</span>
-              <span className="text-[13px] tabular-nums text-gray-500 dark:text-gray-400">
-                {player.periods.filter(Boolean).length}/8 periods
-              </span>
-            </div>
+            <span className="w-11 shrink-0 truncate text-[15px] font-semibold">
+              {player.name}
+            </span>
 
-            <div className="mt-2.5 grid grid-cols-8 gap-1.5">
+            <div className="grid flex-1 grid-cols-8 gap-1">
               {player.periods.map((on, index) => (
                 <button
                   key={index}
@@ -39,7 +54,7 @@ export default function PlayersScreen({ onNext }) {
                     transition-all duration-150 active:scale-90 ${
                       on
                         ? 'bg-green-500 text-white shadow-sm shadow-green-500/30'
-                        : 'bg-black/5 dark:bg-white/10 text-gray-500 dark:text-gray-400'
+                        : 'bg-black/5 dark:bg-white/10 text-gray-400 dark:text-gray-500'
                     }`}
                 >
                   {index + 1}
