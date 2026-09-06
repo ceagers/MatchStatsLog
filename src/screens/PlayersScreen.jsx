@@ -1,11 +1,9 @@
-import { Page, Navbar, Block, BlockTitle, List, Button, Stepper } from 'konsta/react';
+import { Page, Navbar, Block, BlockTitle, List, Button } from 'konsta/react';
 import { useMatch } from '../store.jsx';
 import { haptic } from '../haptics.js';
 
-const STEPPER_COLORS = { clearBgIos: 'bg-black/5 dark:bg-white/15 active:bg-primary/15' };
-
 export default function PlayersScreen({ onNext }) {
-  const { match, togglePeriod, bump } = useMatch();
+  const { match, togglePeriod } = useMatch();
 
   return (
     <Page className="pb-safe-24">
@@ -48,33 +46,6 @@ export default function PlayersScreen({ onNext }) {
                 </button>
               ))}
             </div>
-
-            <div className="mt-3 space-y-2">
-              <StatRow
-                label="Goals"
-                value={player.goals}
-                onPlus={() => {
-                  haptic('bump');
-                  bump(player.name, 'goals', 1);
-                }}
-                onMinus={() => {
-                  haptic('bump');
-                  bump(player.name, 'goals', -1);
-                }}
-              />
-              <StatRow
-                label="Assists"
-                value={player.assists}
-                onPlus={() => {
-                  haptic('bump');
-                  bump(player.name, 'assists', 1);
-                }}
-                onMinus={() => {
-                  haptic('bump');
-                  bump(player.name, 'assists', -1);
-                }}
-              />
-            </div>
           </li>
         ))}
       </List>
@@ -92,28 +63,5 @@ export default function PlayersScreen({ onNext }) {
         </Button>
       </Block>
     </Page>
-  );
-}
-
-function StatRow({ label, value, onPlus, onMinus }) {
-  return (
-    <div className="flex items-center justify-between">
-      <span className="text-[15px] text-gray-500 dark:text-gray-400">
-        {label}
-        <span className="ml-1.5 font-semibold tabular-nums text-black dark:text-white">
-          {value}
-        </span>
-      </span>
-      <Stepper
-        rounded
-        raised
-        outline
-        buttonsOnly
-        colors={STEPPER_COLORS}
-        value={value}
-        onPlus={onPlus}
-        onMinus={onMinus}
-      />
-    </div>
   );
 }
