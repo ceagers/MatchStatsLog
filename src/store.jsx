@@ -13,6 +13,9 @@ export const PERIOD_UNSET = 0;
 export const PERIOD_GREEN = 1;
 export const PERIOD_RED = 2;
 
+// The match is timed in eight periods — the same eight the squad grid uses.
+export const MAX_PERIODS = 8;
+
 const STORE_KEY = 'matchday.v2';
 const LEGACY_KEY = 'matchday.v1';
 const SAVED_KEY = 'matchday.saved.v1';
@@ -27,6 +30,79 @@ function makePlayer(name) {
   return { name, periods: [0, 0, 0, 0, 0, 0, 0, 0], goals: 0, assists: 0 };
 }
 
+// --- The match clock -------------------------------------------------------
+// Time is read off the wall clock rather than counted in ticks, so the minute is
+// still right after the phone has been locked or the app sent to the background.
+
+export function makeClock() {
+  return { running: false, startedAt: null, elapsedMs: 0, periodIndex: 0, periodMs: [] };
+}
+
+/// Time on the clock in the period being timed right now.
+export function livePeriodMs(clock, at = Date.now()) {
+  if (!clock) return 0;
+  const banked =
+    Number.isFinite(clock.elapsedMs) && clock.elapsedMs > 0 ? clock.elapsedMs : 0;
+  const run =
+    clock.running && Number.isFinite(clock.startedAt)
+      ? Math.max(0, at - clock.startedAt)
+      : 0;
+  return banked + run;
+}
+
+/// Every period timed so far, plus the one in progress.
+export function clockTotalMs(clock, at = Date.now()) {
+  if (!clock) return 0;
+  const banked = (clock.periodMs || []).reduce(
+    (n, ms) => n + (Number.isFinite(ms) && ms > 0 ? ms : 0),
+    0
+  );
+  return banked + livePeriodMs(clock, at);
+}
+
+/// The match minute the clock is sitting in, for prefilling a goal.
+export function clockMinute(clock, at = Date.now()) {
+  return Math.max(1, Math.min(120, Math.floor(clockTotalMs(clock, at) / 60000) + 1));
+}
+
+/// "07:42", or "1:07:42" once past the hour.
+export function formatClock(ms) {
+  const total = Math.max(0, Math.round((Number.isFinite(ms) ? ms : 0) / 1000));
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const seconds = total % 60;
+  const rest = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  return hours > 0 ? `${hours}:${rest}` : rest;
+}
+
+// Stored clock data from an older shape must never crash the launch.
+function normaliseClock(raw) {
+  const c = raw && typeof raw === 'object' ? raw : {};
+  const running = c.running === true && Number.isFinite(c.startedAt);
+  const index =
+    Number.isFinite(c.periodIndex) && c.periodIndex > 0
+      ? Math.min(Math.floor(c.periodIndex), MAX_PERIODS - 1)
+      : 0;
+  return {
+    running,
+    startedAt: running ? c.startedAt : null,
+    elapsedMs: Number.isFinite(c.elapsedMs) && c.elapsedMs > 0 ? c.elapsedMs : 0,
+    periodIndex: index,
+    periodMs: (Array.isArray(c.periodMs) ? c.periodMs : [])
+      .slice(0, MAX_PERIODS)
+      .map((ms) => (Number.isFinite(ms) && ms > 0 ? ms : 0)),
+  };
+}
+
+// A clock caught mid-period, ready for history: the run in progress is banked
+// into its own period and the clock stops, so a saved time never creeps forward.
+function freezeClock(raw) {
+  const clock = normaliseClock(raw);
+  const periodMs = [...clock.periodMs];
+  periodMs[clock.periodIndex] = livePeriodMs(clock);
+  return { ...clock, running: false, startedAt: null, elapsedMs: 0, periodMs };
+}
+
 export function makeMatch() {
   return {
     opposition: '',
@@ -38,6 +114,7 @@ export function makeMatch() {
     savedId: null,
     players: PLAYER_NAMES.map(makePlayer),
     goalTimes: [],
+    clock: makeClock(),
   };
 }
 
@@ -85,6 +162,7 @@ function normalise(raw) {
     savedId: typeof raw.savedId === 'string' ? raw.savedId : null,
     players: players.length ? players : base.players,
     goalTimes,
+    clock: normaliseClock(raw.clock),
   };
 }
 
@@ -226,12 +304,60 @@ export function MatchProvider({ children }) {
     resetMatch: () =>
       setMatch((m) => ({ ...makeMatch(), players: m.players.map((p) => makePlayer(p.name)) })),
 
+    startClock: () =>
+      setMatch((m) =>
+        m.clock.running
+          ? m
+          : { ...m, clock: { ...m.clock, running: true, startedAt: Date.now() } }
+      ),
+
+    pauseClock: () =>
+      setMatch((m) =>
+        m.clock.running
+          ? {
+              ...m,
+              clock: {
+                ...m.clock,
+                running: false,
+                startedAt: null,
+                elapsedMs: livePeriodMs(m.clock),
+              },
+            }
+          : m
+      ),
+
+    resetClock: () => setMatch((m) => ({ ...m, clock: makeClock() })),
+
+    // Bank the period being timed and roll the clock on to the next one. On the
+    // last period it stops instead, leaving the match complete.
+    nextPeriod: () =>
+      setMatch((m) => {
+        const c = m.clock;
+        const index = Math.min(Math.max(0, c.periodIndex), MAX_PERIODS - 1);
+        const periodMs = [...c.periodMs.slice(0, index)];
+        periodMs[index] = livePeriodMs(c);
+        const last = index >= MAX_PERIODS - 1;
+        const carryOn = !last && c.running;
+        return {
+          ...m,
+          clock: {
+            running: carryOn,
+            startedAt: carryOn ? Date.now() : null,
+            elapsedMs: 0,
+            periodIndex: last ? index : index + 1,
+            periodMs,
+          },
+        };
+      }),
+
     // Write the current match into history. Re-saving a match that came from
     // history updates that record rather than creating a second copy.
     saveCurrentMatch: () => {
       const id = match.savedId || crypto.randomUUID();
       const savedAt = new Date().toISOString();
-      const snapshot = JSON.parse(JSON.stringify({ ...match, savedId: id }));
+      const snapshot = JSON.parse(
+        JSON.stringify({ ...match, clock: freezeClock(match.clock), savedId: id })
+      );
       setSavedMatches((list) =>
         list.some((r) => r.id === id)
           ? list.map((r) => (r.id === id ? { id, savedAt, match: snapshot } : r))

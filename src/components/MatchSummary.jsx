@@ -1,9 +1,10 @@
-// The read-only summary of a match record: fixture line, Period 1 squad split,
-// goal/assist tallies and the logged goals. Shared by the live Match screen and
-// any saved match opened from history, so both always read identically.
+// The read-only summary of a match record: fixture line, match time, Period 1
+// squad split, goal/assist tallies and the logged goals. Shared by the live
+// Match screen and any saved match opened from history, so both always read
+// identically.
 
-import { Block, BlockTitle, List } from 'konsta/react';
-import { formatDate, PERIOD_GREEN, PERIOD_RED } from '../store.jsx';
+import { Block, BlockTitle, List, ListItem } from 'konsta/react';
+import { formatDate, formatClock, livePeriodMs, clockTotalMs, PERIOD_GREEN, PERIOD_RED } from '../store.jsx';
 
 export default function MatchSummary({ match }) {
   const sortedGoals = [...match.goalTimes].sort((a, b) => a.minute - b.minute);
@@ -24,6 +25,23 @@ export default function MatchSummary({ match }) {
   );
   const totalGoals = scorerTable.reduce((n, r) => n + r.goals, 0);
   const totalAssists = scorerTable.reduce((n, r) => n + r.assists, 0);
+
+  // Match time: a saved match carries its clock stopped, with the period it was
+  // in banked, while a live match adds the period still running.
+  const clock = match.clock || null;
+  const totalMs = clock ? clockTotalMs(clock) : 0;
+  const liveMs = clock ? livePeriodMs(clock) : 0;
+  const livePeriodNo = clock ? clock.periodIndex + 1 : 0;
+  const periodRows = [];
+  if (clock) {
+    clock.periodMs.forEach((ms, i) => {
+      if (ms > 0) periodRows.push({ number: i + 1, ms, live: false });
+    });
+    if (liveMs > 0 && !periodRows.some((p) => p.number === livePeriodNo)) {
+      periodRows.push({ number: livePeriodNo, ms: liveMs, live: true });
+    }
+    periodRows.sort((a, b) => a.number - b.number);
+  }
 
   // Period 1 broken into the three states, in the order they matter on the day.
   const period1Groups = [
@@ -63,6 +81,30 @@ export default function MatchSummary({ match }) {
           <div className="mt-2 text-[17px] font-semibold">{match.result}</div>
         ) : null}
       </Block>
+
+      {totalMs > 0 ? (
+        <>
+          <BlockTitle>Match Time</BlockTitle>
+          <List strong inset>
+            {periodRows.map((row) => (
+              <ListItem
+                key={row.number}
+                title={`Period ${row.number}`}
+                subtitle={
+                  row.live ? (clock.running ? 'In progress' : 'Current period') : undefined
+                }
+                after={<span className="tabular-nums">{formatClock(row.ms)}</span>}
+              />
+            ))}
+            <ListItem
+              title="Total Match Time"
+              after={
+                <span className="font-semibold tabular-nums">{formatClock(totalMs)}</span>
+              }
+            />
+          </List>
+        </>
+      ) : null}
 
       <BlockTitle>Squad — Period 1</BlockTitle>
       {match.players.length === 0 ? (

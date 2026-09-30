@@ -5,7 +5,9 @@ import {
   Page, Navbar, NavbarBackLink, Block, BlockTitle, List, ListItem, ListButton,
   Dialog, DialogButton,
 } from 'konsta/react';
-import { useMatch, formatDate, formatSavedAt } from '../store.jsx';
+import {
+  useMatch, formatDate, formatSavedAt, formatClock, clockTotalMs,
+} from '../store.jsx';
 import MatchSummary from '../components/MatchSummary.jsx';
 import { haptic } from '../haptics.js';
 
@@ -115,6 +117,7 @@ export default function SavedMatchesScreen() {
             {savedMatches.map((record) => {
               const m = record.match;
               const goals = m.goalTimes.length;
+              const timeMs = m.clock ? clockTotalMs(m.clock) : 0;
               return (
                 <ListItem
                   key={record.id}
@@ -125,7 +128,13 @@ export default function SavedMatchesScreen() {
                   }}
                   title={m.opposition ? `vs ${m.opposition}` : 'No opposition'}
                   subtitle={[m.homeAway, formatDate(m.date)].filter(Boolean).join(' · ')}
-                  text={`${m.result || 'No result'} · ${goals} goal${goals === 1 ? '' : 's'}`}
+                  text={[
+                    m.result || 'No result',
+                    `${goals} goal${goals === 1 ? '' : 's'}`,
+                    timeMs > 0 ? formatClock(timeMs) : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
                   after={
                     <span className="text-[12px] text-gray-400 dark:text-gray-500">
                       {formatSavedAt(record.savedAt)}

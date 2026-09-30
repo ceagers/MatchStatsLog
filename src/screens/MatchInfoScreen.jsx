@@ -113,15 +113,15 @@ export default function MatchInfoScreen({ onNext }) {
         </ListButton>
       </List>
       <Block className="text-[13px] text-gray-500 dark:text-gray-400 !mt-1">
-        Clears the fixture details, every period and all logged goals. The squad list is kept,
-        and anything already saved to history stays there.
+        Clears the fixture details, the match clock and every period, and all logged goals.
+        The squad list is kept, and anything already saved to history stays there.
       </Block>
 
       <Dialog
         opened={confirmReset}
         onBackdropClick={() => setConfirmReset(false)}
         title="Start new match?"
-        content="All fixture details, periods and goals will be cleared. Save this match first if you want to keep it."
+        content="All fixture details, clock times, periods and goals will be cleared. Save this match first if you want to keep it."
         buttons={
           <>
             <DialogButton onClick={() => setConfirmReset(false)}>Cancel</DialogButton>

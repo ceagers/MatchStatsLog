@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import {
   Page, Navbar, Block, BlockTitle, List, ListItem, ListInput,
-  Button, Toast, Actions, ActionsGroup, ActionsButton, ActionsLabel, Badge,
+  Button, Toast, Toggle, Actions, ActionsGroup, ActionsButton, ActionsLabel, Badge,
 } from 'konsta/react';
-import { useMatch } from '../store.jsx';
+import { useMatch, clockMinute, livePeriodMs, MAX_PERIODS } from '../store.jsx';
+import MatchClock from '../components/MatchClock.jsx';
+import { Icon } from '../icons.js';
 import { haptic } from '../haptics.js';
 
 const MINUTES = Array.from({ length: 120 }, (_, i) => i + 1);
@@ -18,12 +20,28 @@ export default function GoalLoggerScreen() {
   const [notes, setNotes] = useState('');
   const [saved, setSaved] = useState(false);
   const [pendingDelete, setPendingDelete] = useState(null);
+  const [followClock, setFollowClock] = useState(true);
 
   useEffect(() => {
     if (!saved) return undefined;
     const id = setTimeout(() => setSaved(false), 1800);
     return () => clearTimeout(id);
   }, [saved]);
+
+  // While the clock is running the minute rides along with it; picking a minute
+  // by hand stops it following.
+  useEffect(() => {
+    if (!followClock) return undefined;
+    setMinute(String(clockMinute(match.clock)));
+    const id = setInterval(() => setMinute(String(clockMinute(match.clock))), 1000);
+    return () => clearInterval(id);
+  }, [followClock, match.clock]);
+
+  const clockStarted =
+    match.clock.running ||
+    livePeriodMs(match.clock) > 0 ||
+    match.clock.periodMs.some((ms) => ms > 0);
+  const clockPeriod = Math.min(match.clock.periodIndex + 1, MAX_PERIODS);
 
   const sortedGoals = [...match.goalTimes].sort((a, b) => a.minute - b.minute);
   const target = pendingDelete
@@ -52,6 +70,42 @@ export default function GoalLoggerScreen() {
     <Page className="pb-safe-24">
       <Navbar title="Goal Logger" large transparent className="top-0 sticky" />
 
+      <BlockTitle>Match Clock</BlockTitle>
+      <List strong inset>
+        <ListItem
+          media={<Icon name="timer" size={24} />}
+          title="Time On The Clock"
+          subtitle={clockStarted ? `Period ${clockPeriod} of ${MAX_PERIODS}` : 'Not started'}
+          after={
+            <MatchClock
+              clock={match.clock}
+              mode="total"
+              className="text-[17px] font-semibold tabular-nums"
+            />
+          }
+        />
+        <ListItem
+          label
+          title="Follow Match Clock"
+          after={
+            <Toggle
+              component="div"
+              className="-my-1 k-color-brand-green"
+              checked={followClock}
+              onChange={() => {
+                haptic('tick');
+                setFollowClock((on) => !on);
+              }}
+            />
+          }
+        />
+      </List>
+      <Block className="!mt-1 text-[13px] text-gray-500 dark:text-gray-400">
+        {followClock
+          ? 'The minute below counts along with the clock.'
+          : 'Set the minute by hand below.'}
+      </Block>
+
       <BlockTitle>New Goal</BlockTitle>
       <List strong inset>
         <ListInput
@@ -59,7 +113,10 @@ export default function GoalLoggerScreen() {
           type="select"
           dropdown
           value={minute}
-          onChange={(e) => setMinute(e.target.value)}
+          onChange={(e) => {
+            setFollowClock(false);
+            setMinute(e.target.value);
+          }}
         >
           {MINUTES.map((m) => (
             <option key={m} value={String(m)}>{`${m}'`}</option>
