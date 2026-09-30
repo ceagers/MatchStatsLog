@@ -4,6 +4,7 @@ import {
   Actions, ActionsGroup, ActionsButton, ActionsLabel, Dialog, DialogButton,
 } from 'konsta/react';
 import { useMatch, PERIOD_GREEN, PERIOD_RED } from '../store.jsx';
+import SubstitutionsPanel from '../components/SubstitutionsPanel.jsx';
 import { Icon } from '../icons.js';
 import { haptic } from '../haptics.js';
 
@@ -172,6 +173,8 @@ export default function PlayersScreen({ onNext }) {
           ))}
         </List>
       )}
+
+      <SubstitutionsPanel />
 
       <Block className="mt-6">
         <Button

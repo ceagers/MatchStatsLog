@@ -2,10 +2,11 @@
 // re-renders this span only, never the whole screen around it.
 
 import { useEffect, useState } from 'react';
-import { clockTotalMs, livePeriodMs, formatClock } from '../store.jsx';
+import { clockTotalMs, sessionMs, formatClock } from '../store.jsx';
 
-/// mode="period" shows the period being timed now, mode="total" the whole match.
-export default function MatchClock({ clock, mode = 'period', className = '' }) {
+/// mode="match" shows the match time (start minute included), mode="session"
+/// only the time timed since the clock was started.
+export default function MatchClock({ clock, mode = 'match', className = '' }) {
   const running = Boolean(clock && clock.running);
   const [now, setNow] = useState(() => Date.now());
 
@@ -16,7 +17,7 @@ export default function MatchClock({ clock, mode = 'period', className = '' }) {
     return () => clearInterval(id);
   }, [running]);
 
-  const ms = mode === 'total' ? clockTotalMs(clock, now) : livePeriodMs(clock, now);
+  const ms = mode === 'session' ? sessionMs(clock, now) : clockTotalMs(clock, now);
 
   return <span className={className}>{formatClock(ms)}</span>;
 }

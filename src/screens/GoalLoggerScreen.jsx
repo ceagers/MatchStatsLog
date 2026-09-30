@@ -3,7 +3,7 @@ import {
   Page, Navbar, Block, BlockTitle, List, ListItem, ListInput,
   Button, Toast, Toggle, Actions, ActionsGroup, ActionsButton, ActionsLabel, Badge,
 } from 'konsta/react';
-import { useMatch, clockMinute, livePeriodMs, MAX_PERIODS } from '../store.jsx';
+import { useMatch, clockMinute, clockState, CLOCK_STATE_LABELS } from '../store.jsx';
 import MatchClock from '../components/MatchClock.jsx';
 import { Icon } from '../icons.js';
 import { haptic } from '../haptics.js';
@@ -37,12 +37,6 @@ export default function GoalLoggerScreen() {
     return () => clearInterval(id);
   }, [followClock, match.clock]);
 
-  const clockStarted =
-    match.clock.running ||
-    livePeriodMs(match.clock) > 0 ||
-    match.clock.periodMs.some((ms) => ms > 0);
-  const clockPeriod = Math.min(match.clock.periodIndex + 1, MAX_PERIODS);
-
   const sortedGoals = [...match.goalTimes].sort((a, b) => a.minute - b.minute);
   const target = pendingDelete
     ? match.goalTimes.find((g) => g.id === pendingDelete)
@@ -75,11 +69,11 @@ export default function GoalLoggerScreen() {
         <ListItem
           media={<Icon name="timer" size={24} />}
           title="Time On The Clock"
-          subtitle={clockStarted ? `Period ${clockPeriod} of ${MAX_PERIODS}` : 'Not started'}
+          subtitle={CLOCK_STATE_LABELS[clockState(match.clock)]}
           after={
             <MatchClock
               clock={match.clock}
-              mode="total"
+              mode="match"
               className="text-[17px] font-semibold tabular-nums"
             />
           }

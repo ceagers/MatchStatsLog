@@ -13,9 +13,6 @@ export const PERIOD_UNSET = 0;
 export const PERIOD_GREEN = 1;
 export const PERIOD_RED = 2;
 
-// The match is timed in eight periods — the same eight the squad grid uses.
-export const MAX_PERIODS = 8;
-
 const STORE_KEY = 'matchday.v2';
 const LEGACY_KEY = 'matchday.v1';
 const SAVED_KEY = 'matchday.saved.v1';
@@ -33,13 +30,14 @@ function makePlayer(name) {
 // --- The match clock -------------------------------------------------------
 // Time is read off the wall clock rather than counted in ticks, so the minute is
 // still right after the phone has been locked or the app sent to the background.
+// offsetMs is the minute the clock counts on from — 45' for a second half, say.
 
 export function makeClock() {
-  return { running: false, startedAt: null, elapsedMs: 0, periodIndex: 0, periodMs: [] };
+  return { running: false, stopped: false, startedAt: null, elapsedMs: 0, offsetMs: 0 };
 }
 
-/// Time on the clock in the period being timed right now.
-export function livePeriodMs(clock, at = Date.now()) {
+/// Time counted since the clock was started, ignoring the start minute.
+export function sessionMs(clock, at = Date.now()) {
   if (!clock) return 0;
   const banked =
     Number.isFinite(clock.elapsedMs) && clock.elapsedMs > 0 ? clock.elapsedMs : 0;
@@ -50,20 +48,33 @@ export function livePeriodMs(clock, at = Date.now()) {
   return banked + run;
 }
 
-/// Every period timed so far, plus the one in progress.
+/// The match time on the clock: the start minute plus everything timed since.
 export function clockTotalMs(clock, at = Date.now()) {
   if (!clock) return 0;
-  const banked = (clock.periodMs || []).reduce(
-    (n, ms) => n + (Number.isFinite(ms) && ms > 0 ? ms : 0),
-    0
-  );
-  return banked + livePeriodMs(clock, at);
+  const offset =
+    Number.isFinite(clock.offsetMs) && clock.offsetMs > 0 ? clock.offsetMs : 0;
+  return offset + sessionMs(clock, at);
 }
 
-/// The match minute the clock is sitting in, for prefilling a goal.
+/// The match minute the clock is sitting in — what a goal or a sub is logged at.
 export function clockMinute(clock, at = Date.now()) {
   return Math.max(1, Math.min(120, Math.floor(clockTotalMs(clock, at) / 60000) + 1));
 }
+
+/// 'ready' | 'running' | 'paused' | 'stopped'
+export function clockState(clock) {
+  if (!clock) return 'ready';
+  if (clock.running) return 'running';
+  if (clock.stopped) return 'stopped';
+  return sessionMs(clock) > 0 ? 'paused' : 'ready';
+}
+
+export const CLOCK_STATE_LABELS = {
+  ready: 'Ready',
+  running: 'Running',
+  paused: 'Paused',
+  stopped: 'Full Time',
+};
 
 /// "07:42", or "1:07:42" once past the hour.
 export function formatClock(ms) {
@@ -79,28 +90,27 @@ export function formatClock(ms) {
 function normaliseClock(raw) {
   const c = raw && typeof raw === 'object' ? raw : {};
   const running = c.running === true && Number.isFinite(c.startedAt);
-  const index =
-    Number.isFinite(c.periodIndex) && c.periodIndex > 0
-      ? Math.min(Math.floor(c.periodIndex), MAX_PERIODS - 1)
-      : 0;
+  // Records from before the clock was reworked timed the match in eight periods;
+  // whatever they banked becomes time on this clock.
+  const legacy = (Array.isArray(c.periodMs) ? c.periodMs : []).reduce(
+    (n, ms) => n + (Number.isFinite(ms) && ms > 0 ? ms : 0),
+    0
+  );
+  const elapsed = Number.isFinite(c.elapsedMs) && c.elapsedMs > 0 ? c.elapsedMs : 0;
   return {
     running,
+    stopped: c.stopped === true && !running,
     startedAt: running ? c.startedAt : null,
-    elapsedMs: Number.isFinite(c.elapsedMs) && c.elapsedMs > 0 ? c.elapsedMs : 0,
-    periodIndex: index,
-    periodMs: (Array.isArray(c.periodMs) ? c.periodMs : [])
-      .slice(0, MAX_PERIODS)
-      .map((ms) => (Number.isFinite(ms) && ms > 0 ? ms : 0)),
+    elapsedMs: elapsed + legacy,
+    offsetMs: Number.isFinite(c.offsetMs) && c.offsetMs > 0 ? c.offsetMs : 0,
   };
 }
 
-// A clock caught mid-period, ready for history: the run in progress is banked
-// into its own period and the clock stops, so a saved time never creeps forward.
+// A clock caught mid-run, ready for history: the run is banked and it stops, so a
+// saved time never creeps forward.
 function freezeClock(raw) {
   const clock = normaliseClock(raw);
-  const periodMs = [...clock.periodMs];
-  periodMs[clock.periodIndex] = livePeriodMs(clock);
-  return { ...clock, running: false, startedAt: null, elapsedMs: 0, periodMs };
+  return { ...clock, running: false, startedAt: null, elapsedMs: sessionMs(clock) };
 }
 
 export function makeMatch() {
@@ -109,11 +119,14 @@ export function makeMatch() {
     homeAway: '',
     date: todayISO(),
     result: '',
+    // Player of the match, free text.
+    potm: '',
     // Set once the match has been written to history, so saving again updates
     // that same record instead of piling up duplicates.
     savedId: null,
     players: PLAYER_NAMES.map(makePlayer),
     goalTimes: [],
+    subs: [],
     clock: makeClock(),
   };
 }
@@ -154,14 +167,24 @@ function normalise(raw) {
     notes: g && typeof g.notes === 'string' ? g.notes : '',
   }));
 
+  const subs = (Array.isArray(raw.subs) ? raw.subs : []).map((s, i) => ({
+    id: s && s.id ? s.id : `s${i}-${Math.random().toString(36).slice(2, 8)}`,
+    minute: s && Number.isFinite(s.minute) ? s.minute : 1,
+    on: s && typeof s.on === 'string' ? s.on : '',
+    off: s && typeof s.off === 'string' ? s.off : '',
+    notes: s && typeof s.notes === 'string' ? s.notes : '',
+  }));
+
   return {
     opposition: typeof raw.opposition === 'string' ? raw.opposition : '',
     homeAway: typeof raw.homeAway === 'string' ? raw.homeAway : '',
     date: typeof raw.date === 'string' && raw.date ? raw.date.slice(0, 10) : base.date,
     result: typeof raw.result === 'string' ? raw.result : '',
+    potm: typeof raw.potm === 'string' ? raw.potm : '',
     savedId: typeof raw.savedId === 'string' ? raw.savedId : null,
     players: players.length ? players : base.players,
     goalTimes,
+    subs,
     clock: normaliseClock(raw.clock),
   };
 }
@@ -230,6 +253,8 @@ export function MatchProvider({ children }) {
     setDate: (date) => setMatch((m) => ({ ...m, date })),
 
     setResult: (result) => setMatch((m) => ({ ...m, result })),
+
+    setPotm: (potm) => setMatch((m) => ({ ...m, potm })),
 
     // Tapping a period cycles grey -> green -> red -> grey.
     cyclePeriod: (name, index) =>
@@ -300,6 +325,14 @@ export function MatchProvider({ children }) {
         };
       }),
 
+    addSub: ({ minute, on, off, notes }) =>
+      setMatch((m) => ({
+        ...m,
+        subs: [...m.subs, { id: crypto.randomUUID(), minute, on, off, notes }],
+      })),
+
+    removeSub: (id) => setMatch((m) => ({ ...m, subs: m.subs.filter((s) => s.id !== id) })),
+
     // Keep whatever squad the user has built up; clear everything else.
     resetMatch: () =>
       setMatch((m) => ({ ...makeMatch(), players: m.players.map((p) => makePlayer(p.name)) })),
@@ -308,7 +341,10 @@ export function MatchProvider({ children }) {
       setMatch((m) =>
         m.clock.running
           ? m
-          : { ...m, clock: { ...m.clock, running: true, startedAt: Date.now() } }
+          : {
+              ...m,
+              clock: { ...m.clock, running: true, stopped: false, startedAt: Date.now() },
+            }
       ),
 
     pauseClock: () =>
@@ -320,7 +356,24 @@ export function MatchProvider({ children }) {
                 ...m.clock,
                 running: false,
                 startedAt: null,
-                elapsedMs: livePeriodMs(m.clock),
+                elapsedMs: sessionMs(m.clock),
+              },
+            }
+          : m
+      ),
+
+    // Stop ends the run: the time is kept and the clock reads Full Time.
+    stopClock: () =>
+      setMatch((m) =>
+        m.clock.running || !m.clock.stopped
+          ? {
+              ...m,
+              clock: {
+                ...m.clock,
+                running: false,
+                stopped: true,
+                startedAt: null,
+                elapsedMs: sessionMs(m.clock),
               },
             }
           : m
@@ -328,26 +381,12 @@ export function MatchProvider({ children }) {
 
     resetClock: () => setMatch((m) => ({ ...m, clock: makeClock() })),
 
-    // Bank the period being timed and roll the clock on to the next one. On the
-    // last period it stops instead, leaving the match complete.
-    nextPeriod: () =>
+    // The minute the clock counts on from — 0 is kick-off. Choosing one clears
+    // the time already timed.
+    setClockStart: (minutes) =>
       setMatch((m) => {
-        const c = m.clock;
-        const index = Math.min(Math.max(0, c.periodIndex), MAX_PERIODS - 1);
-        const periodMs = [...c.periodMs.slice(0, index)];
-        periodMs[index] = livePeriodMs(c);
-        const last = index >= MAX_PERIODS - 1;
-        const carryOn = !last && c.running;
-        return {
-          ...m,
-          clock: {
-            running: carryOn,
-            startedAt: carryOn ? Date.now() : null,
-            elapsedMs: 0,
-            periodIndex: last ? index : index + 1,
-            periodMs,
-          },
-        };
+        const chosen = Math.max(0, Math.min(120, Math.round(Number(minutes) || 0)));
+        return { ...m, clock: { ...makeClock(), offsetMs: chosen * 60000 } };
       }),
 
     // Write the current match into history. Re-saving a match that came from

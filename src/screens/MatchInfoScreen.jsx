@@ -9,7 +9,7 @@ import { haptic } from '../haptics.js';
 
 export default function MatchInfoScreen({ onNext }) {
   const {
-    match, savedMatches, setOpposition, setHomeAway, setDate, setResult,
+    match, savedMatches, setOpposition, setHomeAway, setDate, setResult, setPotm,
     resetMatch, saveCurrentMatch,
   } = useMatch();
   const [confirmReset, setConfirmReset] = useState(false);
@@ -77,6 +77,15 @@ export default function MatchInfoScreen({ onNext }) {
           clearButton
           onClear={() => setResult('')}
         />
+        <ListInput
+          label="POTM"
+          type="text"
+          placeholder="Player of the match"
+          value={match.potm}
+          onInput={(e) => setPotm(e.target.value)}
+          clearButton
+          onClear={() => setPotm('')}
+        />
       </List>
 
       <MatchSummary match={match} />
@@ -90,7 +99,7 @@ export default function MatchInfoScreen({ onNext }) {
       <Block className="!mt-1 text-[13px] text-gray-500 dark:text-gray-400">
         {savedRecord
           ? `Last saved ${formatSavedAt(savedRecord.savedAt)}. Saving again updates that record.`
-          : 'Keeps a full copy of this match — fixture, squad, periods and goals — on the Saved tab.'}
+          : 'Keeps a full copy of this match — fixture, squad, clock, goals and substitutions — on the Saved tab.'}
       </Block>
 
       <Block className="mt-6">
@@ -113,7 +122,7 @@ export default function MatchInfoScreen({ onNext }) {
         </ListButton>
       </List>
       <Block className="text-[13px] text-gray-500 dark:text-gray-400 !mt-1">
-        Clears the fixture details, the match clock and every period, and all logged goals.
+        Clears the fixture details, the match clock, all logged goals and substitutions.
         The squad list is kept, and anything already saved to history stays there.
       </Block>
 
@@ -121,7 +130,7 @@ export default function MatchInfoScreen({ onNext }) {
         opened={confirmReset}
         onBackdropClick={() => setConfirmReset(false)}
         title="Start new match?"
-        content="All fixture details, clock times, periods and goals will be cleared. Save this match first if you want to keep it."
+        content="All fixture details, clock times, goals and substitutions will be cleared. Save this match first if you want to keep it."
         buttons={
           <>
             <DialogButton onClick={() => setConfirmReset(false)}>Cancel</DialogButton>

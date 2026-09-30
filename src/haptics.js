@@ -50,7 +50,9 @@ export const HAPTICS = {
 
   clockPause: { events: [{ intensity: 0.45, sharpness: 0.25, time: 0, type: 'transient' }] },
 
-  periodEnd: { events: [{ intensity: 0.85, sharpness: 0.55, time: 0, type: 'transient' }, { duration: 0.26, intensity: 0.5, releaseTime: 0.2, sharpness: 0.15, time: 0.03, type: 'continuous' }] }
+  clockStop: { events: [{ intensity: 0.8, sharpness: 0.4, time: 0, type: 'transient' }, { duration: 0.3, intensity: 0.55, releaseTime: 0.24, sharpness: 0.1, time: 0.04, type: 'continuous' }] },
+
+  subLogged: { events: [{ intensity: 0.6, sharpness: 0.2, time: 0, type: 'transient' }, { intensity: 0.85, sharpness: 0.9, time: 0.14, type: 'transient' }] }
 };
 
 const channel =

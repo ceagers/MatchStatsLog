@@ -1,13 +1,16 @@
 // The read-only summary of a match record: fixture line, match time, Period 1
-// squad split, goal/assist tallies and the logged goals. Shared by the live
-// Match screen and any saved match opened from history, so both always read
-// identically.
+// squad split, goal/assist tallies, the logged goals and the substitutions.
+// Shared by the live Match screen and any saved match opened from history, so
+// both always read identically.
 
 import { Block, BlockTitle, List, ListItem } from 'konsta/react';
-import { formatDate, formatClock, livePeriodMs, clockTotalMs, PERIOD_GREEN, PERIOD_RED } from '../store.jsx';
+import {
+  formatDate, formatClock, clockTotalMs, PERIOD_GREEN, PERIOD_RED,
+} from '../store.jsx';
 
 export default function MatchSummary({ match }) {
   const sortedGoals = [...match.goalTimes].sort((a, b) => a.minute - b.minute);
+  const sortedSubs = [...(match.subs || [])].sort((a, b) => a.minute - b.minute);
 
   // Tallied straight from the logged goals, so the table stays right even for a
   // name that has since left the squad.
@@ -26,22 +29,11 @@ export default function MatchSummary({ match }) {
   const totalGoals = scorerTable.reduce((n, r) => n + r.goals, 0);
   const totalAssists = scorerTable.reduce((n, r) => n + r.assists, 0);
 
-  // Match time: a saved match carries its clock stopped, with the period it was
-  // in banked, while a live match adds the period still running.
+  // Match time: a saved match carries its clock stopped, a live one may still be
+  // running — both are read the same way.
   const clock = match.clock || null;
   const totalMs = clock ? clockTotalMs(clock) : 0;
-  const liveMs = clock ? livePeriodMs(clock) : 0;
-  const livePeriodNo = clock ? clock.periodIndex + 1 : 0;
-  const periodRows = [];
-  if (clock) {
-    clock.periodMs.forEach((ms, i) => {
-      if (ms > 0) periodRows.push({ number: i + 1, ms, live: false });
-    });
-    if (liveMs > 0 && !periodRows.some((p) => p.number === livePeriodNo)) {
-      periodRows.push({ number: livePeriodNo, ms: liveMs, live: true });
-    }
-    periodRows.sort((a, b) => a.number - b.number);
-  }
+  const startMinute = clock ? Math.round((clock.offsetMs || 0) / 60000) : 0;
 
   // Period 1 broken into the three states, in the order they matter on the day.
   const period1Groups = [
@@ -80,22 +72,26 @@ export default function MatchSummary({ match }) {
         {match.result ? (
           <div className="mt-2 text-[17px] font-semibold">{match.result}</div>
         ) : null}
+        {match.potm ? (
+          <div className="mt-2 text-[15px]">
+            <span className="text-[12px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+              POTM
+            </span>{' '}
+            <span className="font-semibold">{match.potm}</span>
+          </div>
+        ) : null}
       </Block>
 
       {totalMs > 0 ? (
         <>
           <BlockTitle>Match Time</BlockTitle>
           <List strong inset>
-            {periodRows.map((row) => (
+            {startMinute > 0 ? (
               <ListItem
-                key={row.number}
-                title={`Period ${row.number}`}
-                subtitle={
-                  row.live ? (clock.running ? 'In progress' : 'Current period') : undefined
-                }
-                after={<span className="tabular-nums">{formatClock(row.ms)}</span>}
+                title="Started From"
+                after={<span className="tabular-nums">{`${startMinute}'`}</span>}
               />
-            ))}
+            ) : null}
             <ListItem
               title="Total Match Time"
               after={
@@ -209,6 +205,46 @@ export default function MatchSummary({ match }) {
                 {goal.notes ? (
                   <div className="mt-0.5 break-words text-[13px] text-gray-500 dark:text-gray-400">
                     {goal.notes}
+                  </div>
+                ) : null}
+              </div>
+            </li>
+          ))}
+        </List>
+      )}
+
+      <BlockTitle>
+        Substitutions{' '}
+        <span className="font-normal text-gray-500 dark:text-gray-400">
+          ({sortedSubs.length})
+        </span>
+      </BlockTitle>
+      {sortedSubs.length === 0 ? (
+        <Block strong inset className="text-center text-gray-500 dark:text-gray-400">
+          No substitutions logged.
+        </Block>
+      ) : (
+        <List strong inset>
+          {sortedSubs.map((sub, i) => (
+            <li
+              key={sub.id}
+              className={`flex items-start gap-3 px-4 py-2.5 ${
+                i < sortedSubs.length - 1 ? 'hairline-b' : ''
+              }`}
+            >
+              <span
+                className="mt-0.5 w-11 shrink-0 rounded-md bg-red-500 py-0.5 text-center
+                           text-[13px] font-semibold tabular-nums text-white"
+              >
+                {sub.minute}&apos;
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="text-[15px] font-semibold">
+                  {sub.on} on · {sub.off} off
+                </div>
+                {sub.notes ? (
+                  <div className="mt-0.5 break-words text-[13px] text-gray-500 dark:text-gray-400">
+                    {sub.notes}
                   </div>
                 ) : null}
               </div>
