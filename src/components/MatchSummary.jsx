@@ -1,13 +1,11 @@
-// The read-only summary of a match record: fixture line, match time, Period 1
-// squad split, goal/assist tallies, the logged goals, the substitutions and the
-// spreadsheet export. Shared by the live Match screen and any saved match opened
-// from history, so both always read identically.
+// The read-only summary of a match record: fixture line, Period 1 squad split,
+// goal/assist tallies, the logged goals, the substitutions and the spreadsheet
+// export. Shared by the live Match screen and any saved match opened from
+// history, so both always read identically.
 
 import { useState } from 'react';
 import { Block, BlockTitle, List, ListItem, ListButton } from 'konsta/react';
-import {
-  formatDate, formatClock, clockTotalMs, PERIOD_GREEN, PERIOD_RED,
-} from '../store.jsx';
+import { formatDate, PERIOD_GREEN, PERIOD_RED } from '../store.jsx';
 import ExportSheet from './ExportSheet.jsx';
 import { Icon } from '../icons.js';
 import { haptic } from '../haptics.js';
@@ -34,12 +32,6 @@ export default function MatchSummary({ match }) {
   );
   const totalGoals = scorerTable.reduce((n, r) => n + r.goals, 0);
   const totalAssists = scorerTable.reduce((n, r) => n + r.assists, 0);
-
-  // Match time: a saved match carries its clock stopped, a live one may still be
-  // running — both are read the same way.
-  const clock = match.clock || null;
-  const totalMs = clock ? clockTotalMs(clock) : 0;
-  const startMinute = clock ? Math.round((clock.offsetMs || 0) / 60000) : 0;
 
   // Period 1 broken into the three states, in the order they matter on the day.
   const period1Groups = [
@@ -87,26 +79,6 @@ export default function MatchSummary({ match }) {
           </div>
         ) : null}
       </Block>
-
-      {totalMs > 0 ? (
-        <>
-          <BlockTitle>Match Time</BlockTitle>
-          <List strong inset>
-            {startMinute > 0 ? (
-              <ListItem
-                title="Started From"
-                after={<span className="tabular-nums">{`${startMinute}'`}</span>}
-              />
-            ) : null}
-            <ListItem
-              title="Total Match Time"
-              after={
-                <span className="font-semibold tabular-nums">{formatClock(totalMs)}</span>
-              }
-            />
-          </List>
-        </>
-      ) : null}
 
       <BlockTitle>Squad — Period 1</BlockTitle>
       {match.players.length === 0 ? (
