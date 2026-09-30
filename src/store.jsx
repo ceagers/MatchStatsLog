@@ -286,6 +286,19 @@ export function MatchProvider({ children }) {
     removePlayer: (name) =>
       setMatch((m) => ({ ...m, players: m.players.filter((p) => p.name !== name) })),
 
+    // Drag-to-re-sort on the squad screen: lift a player out of one slot and
+    // drop them into another. Everything that reads the squad order — the goal
+    // and substitution pickers, the saved match — follows it.
+    movePlayer: (from, to) =>
+      setMatch((m) => {
+        const players = [...m.players];
+        const last = players.length - 1;
+        if (from === to || from < 0 || to < 0 || from > last || to > last) return m;
+        const [moved] = players.splice(from, 1);
+        players.splice(to, 0, moved);
+        return { ...m, players };
+      }),
+
     bump: (name, field, delta) =>
       setMatch((m) => ({
         ...m,

@@ -22,7 +22,7 @@ const STATE_DOT = {
   stopped: 'bg-gray-400 dark:bg-white/40',
 };
 
-export default function TimerScreen() {
+export default function TimerScreen({ onNext }) {
   const { match, startClock, pauseClock, stopClock, resetClock, setClockStart } = useMatch();
   const clock = match.clock;
   const [confirmReset, setConfirmReset] = useState(false);
@@ -142,6 +142,19 @@ export default function TimerScreen() {
         say — and clears the time already timed. Stop ends the run and keeps the time,
         Reset takes the clock back to 0:00. Goals and substitutions read their minute
         off this clock, and the time is saved with the match.
+      </Block>
+
+      <Block className="mt-6">
+        <Button
+          large
+          rounded
+          onClick={() => {
+            haptic('tick');
+            onNext();
+          }}
+        >
+          Go to Players
+        </Button>
       </Block>
 
       <Dialog

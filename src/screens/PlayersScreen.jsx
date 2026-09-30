@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   Page, Navbar, Block, BlockTitle, List, ListInput, Button, Link, Sheet,
   Actions, ActionsGroup, ActionsButton, ActionsLabel, Dialog, DialogButton,
@@ -15,13 +15,15 @@ const PERIOD_STYLES = [
 ];
 
 export default function PlayersScreen({ onNext }) {
-  const { match, cyclePeriod, addPlayer, removePlayer, clearPeriods } = useMatch();
+  const { match, cyclePeriod, addPlayer, removePlayer, clearPeriods, movePlayer } = useMatch();
 
   const [addOpen, setAddOpen] = useState(false);
   const [newName, setNewName] = useState('');
   const [menuFor, setMenuFor] = useState(null);
   const [editing, setEditing] = useState(false);
   const [pendingRemove, setPendingRemove] = useState(null);
+  const [dragName, setDragName] = useState(null);
+  const dragRef = useRef(null);
 
   const trimmed = newName.trim();
   const duplicate =
@@ -34,6 +36,47 @@ export default function PlayersScreen({ onNext }) {
     addPlayer(trimmed);
     setNewName('');
     setAddOpen(false);
+  };
+
+  // --- Re-sort the squad by dragging ----------------------------------------
+  // The grip at the end of a row picks that player up and the row trades places
+  // as the finger crosses the next one. The list is re-ordered live, so what the
+  // coach sees under the finger is what gets saved.
+  const startDrag = (event, player, index) => {
+    if (match.players.length < 2) return;
+    const row = event.currentTarget.closest('li');
+    const height = row ? row.getBoundingClientRect().height : 0;
+    dragRef.current = { index, startY: event.clientY, rowHeight: height || 48 };
+    setDragName(player.name);
+    haptic('impact');
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    } catch {
+      /* capture is a nicety; the drag still works without it */
+    }
+  };
+
+  const moveDrag = (event) => {
+    const drag = dragRef.current;
+    if (!drag) return;
+    const crossed = Math.round((event.clientY - drag.startY) / drag.rowHeight);
+    const target = Math.max(
+      0,
+      Math.min(match.players.length - 1, drag.index + crossed)
+    );
+    if (target === drag.index) return;
+    movePlayer(drag.index, target);
+    // Re-anchor the finger to the slot it just took, so it does not keep swapping.
+    drag.startY += (target - drag.index) * drag.rowHeight;
+    drag.index = target;
+    haptic('tick');
+  };
+
+  const endDrag = () => {
+    if (!dragRef.current) return;
+    dragRef.current = null;
+    setDragName(null);
+    haptic('bump');
   };
 
   return (
@@ -66,7 +109,7 @@ export default function PlayersScreen({ onNext }) {
       <Block className="!mb-2 text-[13px] text-gray-500 dark:text-gray-400">
         {editing
           ? 'Tap the red button to remove a player from the squad.'
-          : 'Tap a period to cycle grey, green, red. Tap a name for more options.'}
+          : 'Tap a period to cycle grey, green, red. Tap a name for more options. Drag the grip at the end of a row to re-sort the squad.'}
       </Block>
 
       {editing ? null : (
@@ -91,7 +134,7 @@ export default function PlayersScreen({ onNext }) {
         <List strong inset>
           {editing ? null : (
             <li className="flex items-center gap-2 px-3 pt-2 pb-1">
-              <span className="w-11 shrink-0 text-[11px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
+              <span className="w-10 shrink-0 text-[11px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
                 Player
               </span>
               <div className="grid flex-1 grid-cols-8 gap-1">
@@ -104,6 +147,7 @@ export default function PlayersScreen({ onNext }) {
                   </span>
                 ))}
               </div>
+              <span className="w-5 shrink-0" />
             </li>
           )}
 
@@ -112,6 +156,10 @@ export default function PlayersScreen({ onNext }) {
               key={player.name}
               className={`flex items-center gap-2 px-3 py-1.5 ${
                 i < match.players.length - 1 ? 'hairline-b' : ''
+              } ${
+                dragName === player.name
+                  ? 'relative z-10 bg-black/5 dark:bg-white/10'
+                  : ''
               }`}
             >
               {editing ? (
@@ -139,7 +187,7 @@ export default function PlayersScreen({ onNext }) {
                       haptic('tick');
                       setMenuFor(player.name);
                     }}
-                    className="w-11 shrink-0 truncate text-left text-[15px] font-semibold
+                    className="w-10 shrink-0 truncate text-left text-[15px] font-semibold
                                transition-opacity duration-150 active:opacity-50"
                   >
                     {player.name}
@@ -167,6 +215,23 @@ export default function PlayersScreen({ onNext }) {
                       </button>
                     ))}
                   </div>
+
+                  <button
+                    aria-label={`Re-sort ${player.name}`}
+                    onPointerDown={(event) => startDrag(event, player, i)}
+                    onPointerMove={moveDrag}
+                    onPointerUp={endDrag}
+                    onPointerCancel={endDrag}
+                    onLostPointerCapture={endDrag}
+                    className={`flex h-9 w-5 shrink-0 items-center justify-center rounded-md
+                      [touch-action:none] transition-colors duration-150 ${
+                        dragName === player.name
+                          ? 'text-gray-600 dark:text-gray-200'
+                          : 'text-gray-300 active:text-gray-500 dark:text-gray-600'
+                      }`}
+                  >
+                    <Icon name="grip-vertical" size={16} />
+                  </button>
                 </>
               )}
             </li>

@@ -111,7 +111,7 @@ export default function MatchInfoScreen({ onNext }) {
             onNext();
           }}
         >
-          Go to Players
+          Go to Match Clock
         </Button>
       </Block>
 

@@ -5,8 +5,8 @@ import { Tabbar, TabbarLink, ToolbarPane } from 'konsta/react';
 import { MatchProvider } from './store.jsx';
 import { Icon } from './icons.js';
 import MatchInfoScreen from './screens/MatchInfoScreen.jsx';
-import PlayersScreen from './screens/PlayersScreen.jsx';
 import TimerScreen from './screens/TimerScreen.jsx';
+import PlayersScreen from './screens/PlayersScreen.jsx';
 import GoalLoggerScreen from './screens/GoalLoggerScreen.jsx';
 import SavedMatchesScreen from './screens/SavedMatchesScreen.jsx';
 
@@ -15,9 +15,9 @@ export default function AppScreen() {
 
   return (
     <MatchProvider>
-      {tab === 'info' && <MatchInfoScreen onNext={() => setTab('players')} />}
+      {tab === 'info' && <MatchInfoScreen onNext={() => setTab('timer')} />}
+      {tab === 'timer' && <TimerScreen onNext={() => setTab('players')} />}
       {tab === 'players' && <PlayersScreen onNext={() => setTab('goals')} />}
-      {tab === 'timer' && <TimerScreen />}
       {tab === 'goals' && <GoalLoggerScreen />}
       {tab === 'saved' && <SavedMatchesScreen />}
 
@@ -30,16 +30,16 @@ export default function AppScreen() {
             label="Match"
           />
           <TabbarLink
-            active={tab === 'players'}
-            onClick={() => setTab('players')}
-            icon={<Icon name="users" size={28} />}
-            label="Players"
-          />
-          <TabbarLink
             active={tab === 'timer'}
             onClick={() => setTab('timer')}
             icon={<Icon name="timer" size={28} />}
             label="Timer"
+          />
+          <TabbarLink
+            active={tab === 'players'}
+            onClick={() => setTab('players')}
+            icon={<Icon name="users" size={28} />}
+            label="Players"
           />
           <TabbarLink
             active={tab === 'goals'}
