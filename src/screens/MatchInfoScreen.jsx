@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
-  Page, Navbar, Block, BlockTitle, List, ListInput, Button, Link,
+  Page, Navbar, Block, BlockTitle, List, ListInput, Button, Link, Toast,
 } from 'konsta/react';
-import { useMatch } from '../store.jsx';
+import { useMatch, formatSavedAt } from '../store.jsx';
 import MatchSummary from '../components/MatchSummary.jsx';
 import SettingsPanel from './SettingsPanel.jsx';
 import { Icon } from '../icons.js';
@@ -10,9 +10,30 @@ import { haptic } from '../haptics.js';
 
 export default function MatchInfoScreen({ onNext }) {
   const {
-    match, setOpposition, setHomeAway, setDate, setResult, setPotm,
+    match, savedMatches, setOpposition, setHomeAway, setDate, setResult, setPotm,
+    saveCurrentMatch,
   } = useMatch();
   const [settingsOpened, setSettingsOpened] = useState(false);
+  const [toast, setToast] = useState('');
+  const toastTimer = useRef(null);
+
+  useEffect(() => () => clearTimeout(toastTimer.current), []);
+
+  const showToast = (text) => {
+    setToast(text);
+    clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(''), 1800);
+  };
+
+  const savedRecord = savedMatches.find((r) => r.id === match.savedId) || null;
+
+  // Same save as the Utilities screen, kept handy at the top right of the
+  // fixture the coach is filling in.
+  const saveMatch = () => {
+    haptic('archived');
+    saveCurrentMatch();
+    showToast(savedRecord ? 'Saved match updated' : 'Match saved');
+  };
 
   return (
     <Page colors={{ bgIos: 'bg-transparent' }} className="relative z-10 pb-safe-24">
@@ -33,6 +54,7 @@ export default function MatchInfoScreen({ onNext }) {
             <Icon name="settings" size={24} />
           </Link>
         }
+        right={<Link navbar onClick={saveMatch}>Save</Link>}
       />
 
       <BlockTitle>Fixture</BlockTitle>
@@ -97,6 +119,10 @@ export default function MatchInfoScreen({ onNext }) {
       </Block>
 
       <SettingsPanel opened={settingsOpened} onClose={() => setSettingsOpened(false)} />
+
+      <Toast position="center" opened={toast !== ''}>
+        <div className="shrink">{toast}</div>
+      </Toast>
     </Page>
   );
 }
