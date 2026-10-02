@@ -38,10 +38,10 @@ export default function PlayersScreen({ onNext }) {
     setAddOpen(false);
   };
 
-  // --- Re-sort the squad by dragging ----------------------------------------
-  // The grip at the end of a row picks that player up and the row trades places
-  // as the finger crosses the next one. The list is re-ordered live, so what the
-  // coach sees under the finger is what gets saved.
+  // --- Re-sort the squad by dragging (edit mode only) ------------------------
+  // In edit mode, the grip at the end of a row picks that player up and the row
+  // trades places as the finger crosses the next one. The list is re-ordered
+  // live, so what the coach sees under the finger is what gets saved.
   const startDrag = (event, player, index) => {
     if (match.players.length < 2) return;
     const row = event.currentTarget.closest('li');
@@ -108,8 +108,8 @@ export default function PlayersScreen({ onNext }) {
 
       <Block className="!mb-2 text-[13px] text-gray-500 dark:text-gray-400">
         {editing
-          ? 'Tap the red button to remove a player from the squad.'
-          : 'Tap a period to cycle grey, green, red. Tap a name for more options. Drag the grip at the end of a row to re-sort the squad.'}
+          ? 'Drag the grip to re-sort the squad. Tap the red button to remove a player.'
+          : 'Tap a period to cycle grey, green, red. Tap a name for more options.'}
       </Block>
 
       {editing ? null : (
@@ -147,7 +147,6 @@ export default function PlayersScreen({ onNext }) {
                   </span>
                 ))}
               </div>
-              <span className="w-5 shrink-0" />
             </li>
           )}
 
@@ -178,6 +177,22 @@ export default function PlayersScreen({ onNext }) {
                   >
                     <Icon name="trash-2" size={16} />
                     Remove
+                  </button>
+                  <button
+                    aria-label={`Re-sort ${player.name}`}
+                    onPointerDown={(event) => startDrag(event, player, i)}
+                    onPointerMove={moveDrag}
+                    onPointerUp={endDrag}
+                    onPointerCancel={endDrag}
+                    onLostPointerCapture={endDrag}
+                    className={`flex h-9 w-5 shrink-0 items-center justify-center rounded-md
+                      [touch-action:none] transition-colors duration-150 ${
+                        dragName === player.name
+                          ? 'text-gray-600 dark:text-gray-200'
+                          : 'text-gray-300 active:text-gray-500 dark:text-gray-600'
+                      }`}
+                  >
+                    <Icon name="grip-vertical" size={16} />
                   </button>
                 </div>
               ) : (
@@ -215,23 +230,6 @@ export default function PlayersScreen({ onNext }) {
                       </button>
                     ))}
                   </div>
-
-                  <button
-                    aria-label={`Re-sort ${player.name}`}
-                    onPointerDown={(event) => startDrag(event, player, i)}
-                    onPointerMove={moveDrag}
-                    onPointerUp={endDrag}
-                    onPointerCancel={endDrag}
-                    onLostPointerCapture={endDrag}
-                    className={`flex h-9 w-5 shrink-0 items-center justify-center rounded-md
-                      [touch-action:none] transition-colors duration-150 ${
-                        dragName === player.name
-                          ? 'text-gray-600 dark:text-gray-200'
-                          : 'text-gray-300 active:text-gray-500 dark:text-gray-600'
-                      }`}
-                  >
-                    <Icon name="grip-vertical" size={16} />
-                  </button>
                 </>
               )}
             </li>
