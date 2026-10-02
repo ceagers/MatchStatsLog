@@ -26,6 +26,22 @@ export default function AppScreen() {
 
   return (
     <MatchProvider>
+      {/* The club badge as a faint wallpaper behind every screen. The screens
+          sit above it with clear page backgrounds, so it shows through
+          everywhere the content doesn't already cover. */}
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-0 z-0 overflow-hidden
+                   bg-white dark:bg-neutral-900"
+      >
+        <img
+          src="assets/badge.PNG"
+          alt=""
+          className="h-full w-full object-cover object-center
+                     opacity-[0.15] dark:opacity-50"
+        />
+      </div>
+
       {tab === 'info' && <MatchInfoScreen onNext={() => setTab('timer')} />}
       {tab === 'timer' && <TimerScreen onNext={() => setTab('players')} />}
       {tab === 'players' && <PlayersScreen onNext={() => setTab('goals')} />}

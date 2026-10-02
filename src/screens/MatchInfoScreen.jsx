@@ -33,7 +33,7 @@ export default function MatchInfoScreen({ onNext }) {
   };
 
   return (
-    <Page className="pb-safe-24">
+    <Page colors={{ bgIos: 'bg-transparent' }} className="relative z-10 pb-safe-24">
       <Navbar
         title="Match Info"
         large

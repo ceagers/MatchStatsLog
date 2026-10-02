@@ -38,7 +38,7 @@ export default function TimerScreen({ onNext }) {
   };
 
   return (
-    <Page className="pb-safe-24">
+    <Page colors={{ bgIos: 'bg-transparent' }} className="relative z-10 pb-safe-24">
       <Navbar title="Match Clock" large transparent className="top-0 sticky" />
 
       <Block strong inset className="!mt-0 !py-6 text-center">

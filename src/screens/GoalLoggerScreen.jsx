@@ -61,7 +61,7 @@ export default function GoalLoggerScreen() {
   };
 
   return (
-    <Page className="pb-safe-24">
+    <Page colors={{ bgIos: 'bg-transparent' }} className="relative z-10 pb-safe-24">
       <Navbar title="Goal Logger" large transparent className="top-0 sticky" />
 
       <BlockTitle>Match Clock</BlockTitle>

@@ -68,7 +68,7 @@ export default function SavedMatchesScreen() {
 
   if (open) {
     return (
-      <Page className="pb-safe-24">
+      <Page colors={{ bgIos: 'bg-transparent' }} className="relative z-10 pb-safe-24">
         <Navbar
           title={open.match.opposition ? `vs ${open.match.opposition}` : 'Saved Match'}
           className="top-0 sticky"
@@ -97,7 +97,7 @@ export default function SavedMatchesScreen() {
   }
 
   return (
-    <Page className="pb-safe-24">
+    <Page colors={{ bgIos: 'bg-transparent' }} className="relative z-10 pb-safe-24">
       <Navbar title="Saved" large transparent className="top-0 sticky" />
 
       {savedMatches.length === 0 ? (
