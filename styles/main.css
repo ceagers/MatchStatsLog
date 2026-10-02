@@ -20,3 +20,29 @@ body {
 #root {
   height: 100%;
 }
+
+
+
+/* Screen changes: the incoming screen slides in from the direction of travel
+   (used by both the tab bar and the horizontal swipe between screens). */
+@keyframes screen-in-right {
+  from {
+    transform: translateX(28px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes screen-in-left {
+  from {
+    transform: translateX(-28px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
