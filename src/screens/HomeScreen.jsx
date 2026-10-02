@@ -25,7 +25,7 @@ export default function HomeScreen({ onNavigate }) {
       <Page colors={{ bgIos: 'bg-transparent' }} className="relative z-10 pb-safe-24">
         <div className="flex min-h-full flex-col">
           {/* The title, over the photo */}
-          <div className="px-5 pt-24">
+          <div className="px-5 pt-24 text-center">
             <h1 className="text-[34px] font-bold leading-tight tracking-tight text-white [text-shadow:0_2px_12px_rgba(0,0,0,0.55)]">
               MatchStatsLog
             </h1>
