@@ -39,8 +39,8 @@ export default function PlayersScreen({ onNext }) {
   };
 
   // --- Re-sort the squad by dragging (edit mode only) ------------------------
-  // In edit mode, the grip at the end of a row picks that player up and the row
-  // trades places as the finger crosses the next one. The list is re-ordered
+  // In edit mode, the grip beside a player's name picks that player up and the
+  // row trades places as the finger crosses the next one. The list is re-ordered
   // live, so what the coach sees under the finger is what gets saved.
   const startDrag = (event, player, index) => {
     if (match.players.length < 2) return;
@@ -163,21 +163,6 @@ export default function PlayersScreen({ onNext }) {
             >
               {editing ? (
                 <div className="flex flex-1 items-center gap-3 py-1">
-                  <span className="min-w-0 flex-1 truncate text-[15px] font-semibold">
-                    {player.name}
-                  </span>
-                  <button
-                    onClick={() => {
-                      haptic('tick');
-                      setPendingRemove(player.name);
-                    }}
-                    className="flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-red-500/10
-                               px-3 text-[14px] font-semibold text-red-500
-                               transition-all duration-150 active:scale-95"
-                  >
-                    <Icon name="trash-2" size={16} />
-                    Remove
-                  </button>
                   <button
                     aria-label={`Re-sort ${player.name}`}
                     onPointerDown={(event) => startDrag(event, player, i)}
@@ -193,6 +178,21 @@ export default function PlayersScreen({ onNext }) {
                       }`}
                   >
                     <Icon name="grip-vertical" size={16} />
+                  </button>
+                  <span className="min-w-0 flex-1 truncate text-[15px] font-semibold">
+                    {player.name}
+                  </span>
+                  <button
+                    onClick={() => {
+                      haptic('tick');
+                      setPendingRemove(player.name);
+                    }}
+                    className="flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-red-500/10
+                               px-3 text-[14px] font-semibold text-red-500
+                               transition-all duration-150 active:scale-95"
+                  >
+                    <Icon name="trash-2" size={16} />
+                    Remove
                   </button>
                 </div>
               ) : (
