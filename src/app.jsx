@@ -15,6 +15,7 @@ import TimerScreen from './screens/TimerScreen.jsx';
 import PlayersScreen from './screens/PlayersScreen.jsx';
 import GoalLoggerScreen from './screens/GoalLoggerScreen.jsx';
 import SavedMatchesScreen from './screens/SavedMatchesScreen.jsx';
+import UtilitiesScreen from './screens/UtilitiesScreen.jsx';
 
 // Home first, then the screens in the order the coach walks them on the day.
 const TABS = [
@@ -24,6 +25,7 @@ const TABS = [
   { id: 'players', label: 'Players', icon: 'users' },
   { id: 'goals', label: 'Goals', icon: 'target' },
   { id: 'saved', label: 'Saved', icon: 'archive' },
+  { id: 'utilities', label: 'Utilities', icon: 'wrench' },
 ];
 
 // Swipes never start on form controls, sliders or anything floating over the
@@ -149,6 +151,7 @@ export default function AppScreen() {
         {tab === 'players' && <PlayersScreen onNext={() => setTab('goals')} />}
         {tab === 'goals' && <GoalLoggerScreen />}
         {tab === 'saved' && <SavedMatchesScreen onNavigate={setTab} />}
+        {tab === 'utilities' && <UtilitiesScreen />}
       </div>
 
       <nav

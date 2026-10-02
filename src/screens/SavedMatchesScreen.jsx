@@ -117,8 +117,8 @@ export default function SavedMatchesScreen({ onNavigate }) {
 
       {savedMatches.length === 0 ? (
         <Block strong inset className="text-center text-gray-500 dark:text-gray-400">
-          No saved matches yet. Use Save on the Match screen to keep a match for
-          future reference.
+          No saved matches yet. Use Save Match To History on the Utilities tab to
+          keep a match for future reference.
         </Block>
       ) : (
         <>

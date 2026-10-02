@@ -1,18 +1,12 @@
 // The read-only summary of a match record: fixture line, Period 1 squad split,
-// goal/assist tallies, the logged goals, the substitutions and the spreadsheet
-// export. Shared by the live Match screen and any saved match opened from
-// history, so both always read identically.
+// goal/assist tallies, the logged goals and the substitutions. Shared by the
+// live Match screen and any saved match opened from history, so both always
+// read identically.
 
-import { useState } from 'react';
-import { Block, BlockTitle, List, ListItem, ListButton } from 'konsta/react';
+import { Block, BlockTitle, List } from 'konsta/react';
 import { formatDate, PERIOD_GREEN, PERIOD_RED } from '../store.jsx';
-import ExportSheet from './ExportSheet.jsx';
-import { Icon } from '../icons.js';
-import { haptic } from '../haptics.js';
 
 export default function MatchSummary({ match }) {
-  const [exportOpen, setExportOpen] = useState(false);
-
   const sortedGoals = [...match.goalTimes].sort((a, b) => a.minute - b.minute);
   const sortedSubs = [...(match.subs || [])].sort((a, b) => a.minute - b.minute);
 
@@ -230,31 +224,6 @@ export default function MatchSummary({ match }) {
           ))}
         </List>
       )}
-
-      <BlockTitle>Export</BlockTitle>
-      <List strong inset>
-        <ListButton
-          onClick={() => {
-            haptic('tick');
-            setExportOpen(true);
-          }}
-        >
-          <span className="inline-flex items-center gap-2">
-            <Icon name="file-spreadsheet" size={20} />
-            Export To Excel
-          </span>
-        </ListButton>
-      </List>
-      <Block className="!mt-1 text-[13px] text-gray-500 dark:text-gray-400">
-        A spreadsheet of this match — fixture, squad with every period, match time, goals
-        and substitutions — for Excel, Numbers or Google Sheets.
-      </Block>
-
-      <ExportSheet
-        opened={exportOpen}
-        onClose={() => setExportOpen(false)}
-        match={match}
-      />
     </>
   );
 }
