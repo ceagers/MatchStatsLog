@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   Page, Navbar, Block, BlockTitle, List, ListInput, Button, Link, Sheet, Toast,
-  Actions, ActionsGroup, ActionsButton, ActionsLabel, Dialog, DialogButton,
+  Glass, Actions, ActionsGroup, ActionsButton, ActionsLabel, Dialog, DialogButton,
 } from 'konsta/react';
 import { useMatch, formatSavedAt, PERIOD_GREEN, PERIOD_RED } from '../store.jsx';
 import SubstitutionsPanel from '../components/SubstitutionsPanel.jsx';
@@ -104,10 +104,11 @@ export default function PlayersScreen({ onNext }) {
         transparent
         className="top-0 sticky"
         left={
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2.5">
             {match.players.length > 0 && (
               <Link
                 navbar
+                className="!ml-0"
                 onClick={() => {
                   haptic('tick');
                   setEditing((on) => !on);
@@ -116,9 +117,14 @@ export default function PlayersScreen({ onNext }) {
                 {editing ? 'Done' : 'Edit'}
               </Link>
             )}
-            <Link navbar iconOnly onClick={() => setAddOpen(true)}>
-              <Icon name="plus" size={26} />
-            </Link>
+            <Glass
+              component="button"
+              aria-label="Add squad member"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+              onClick={() => setAddOpen(true)}
+            >
+              <Icon name="plus" size={18} />
+            </Glass>
           </div>
         }
         right={<Link navbar onClick={saveMatch}>Save</Link>}
