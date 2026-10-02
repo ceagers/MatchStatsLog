@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   Page, Navbar, Block, BlockTitle, List, ListInput, Button, Link, Sheet, Toast,
-  Glass, Actions, ActionsGroup, ActionsButton, ActionsLabel, Dialog, DialogButton,
+  Actions, ActionsGroup, ActionsButton, ActionsLabel, Dialog, DialogButton,
 } from 'konsta/react';
 import { useMatch, formatSavedAt, PERIOD_GREEN, PERIOD_RED } from '../store.jsx';
 import SubstitutionsPanel from '../components/SubstitutionsPanel.jsx';
@@ -104,28 +104,17 @@ export default function PlayersScreen({ onNext }) {
         transparent
         className="top-0 sticky"
         left={
-          <div className="flex items-center gap-2.5">
-            {match.players.length > 0 && (
-              <Link
-                navbar
-                className="!ml-0"
-                onClick={() => {
-                  haptic('tick');
-                  setEditing((on) => !on);
-                }}
-              >
-                {editing ? 'Done' : 'Edit'}
-              </Link>
-            )}
-            <Glass
-              component="button"
-              aria-label="Add squad member"
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
-              onClick={() => setAddOpen(true)}
+          match.players.length > 0 ? (
+            <Link
+              navbar
+              onClick={() => {
+                haptic('tick');
+                setEditing((on) => !on);
+              }}
             >
-              <Icon name="plus" size={18} />
-            </Glass>
-          </div>
+              {editing ? 'Done' : 'Edit'}
+            </Link>
+          ) : undefined
         }
         right={<Link navbar onClick={saveMatch}>Save</Link>}
       />
@@ -144,6 +133,26 @@ export default function PlayersScreen({ onNext }) {
         </Block>
       )}
 
+      {(editing || match.players.length === 0) && (
+        <Block className="!mt-1 !mb-1 flex justify-end">
+          <Button
+            small
+            tonal
+            rounded
+            inline
+            onClick={() => {
+              haptic('tick');
+              setAddOpen(true);
+            }}
+          >
+            <span className="flex items-center gap-1.5">
+              <Icon name="plus" size={16} />
+              Add Player
+            </span>
+          </Button>
+        </Block>
+      )}
+
       <BlockTitle>
         Squad{' '}
         <span className="font-normal text-gray-500 dark:text-gray-400">
@@ -152,7 +161,7 @@ export default function PlayersScreen({ onNext }) {
       </BlockTitle>
       {match.players.length === 0 ? (
         <Block strong inset className="text-center text-gray-500 dark:text-gray-400">
-          No squad members yet. Tap + to add one.
+          No squad members yet. Tap Add Player to add one.
         </Block>
       ) : (
         <List strong inset>
