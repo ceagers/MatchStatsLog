@@ -7,7 +7,6 @@
 import { useRef, useState } from 'react';
 import { MatchProvider } from './store.jsx';
 import { useSettings } from './settings.jsx';
-import { CountdownProvider } from './countdown.jsx';
 import { Icon } from './icons.js';
 import { haptic } from './haptics.js';
 import HomeScreen from './screens/HomeScreen.jsx';
@@ -113,8 +112,7 @@ export default function AppScreen() {
   };
 
   return (
-    <CountdownProvider>
-      <MatchProvider>
+    <MatchProvider>
       {/* The club badge as a faint wallpaper behind every screen. The screens
           sit above it with clear page backgrounds, so it shows through
           everywhere the content doesn't already cover. A custom badge chosen
@@ -181,7 +179,6 @@ export default function AppScreen() {
           })}
         </div>
       </nav>
-      </MatchProvider>
-    </CountdownProvider>
+    </MatchProvider>
   );
 }
