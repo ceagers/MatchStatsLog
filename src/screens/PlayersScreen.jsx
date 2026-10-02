@@ -135,21 +135,18 @@ export default function PlayersScreen({ onNext }) {
 
       {(editing || match.players.length === 0) && (
         <Block className="!mt-1 !mb-1 flex justify-end">
-          <Button
-            small
-            tonal
-            rounded
-            inline
+          <Link
+            navbar
             onClick={() => {
               haptic('tick');
               setAddOpen(true);
             }}
           >
-            <span className="flex items-center gap-1.5">
+            <span className="flex items-center gap-1">
               <Icon name="plus" size={16} />
               Add Player
             </span>
-          </Button>
+          </Link>
         </Block>
       )}
 
