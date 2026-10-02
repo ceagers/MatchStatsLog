@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   Page, Navbar, Block, BlockTitle, List, ListInput, Button, Link, Sheet, Toast,
-  Actions, ActionsGroup, ActionsButton, ActionsLabel, Dialog, DialogButton,
+  Glass, Actions, ActionsGroup, ActionsButton, ActionsLabel, Dialog, DialogButton,
 } from 'konsta/react';
 import { useMatch, formatSavedAt, PERIOD_GREEN, PERIOD_RED } from '../store.jsx';
 import SubstitutionsPanel from '../components/SubstitutionsPanel.jsx';
@@ -144,18 +144,18 @@ export default function PlayersScreen({ onNext }) {
 
       {(editing || match.players.length === 0) && (
         <Block className="!mt-1 !mb-1 flex justify-end">
-          <Link
-            navbar
+          <Glass
+            component="button"
+            aria-label="Add player"
+            className="flex h-16 w-16 items-center justify-center rounded-full
+                       transition-transform duration-150 active:scale-95"
             onClick={() => {
               haptic('tick');
               setAddOpen(true);
             }}
           >
-            <span className="flex items-center gap-1">
-              <Icon name="plus" size={16} />
-              Add Player
-            </span>
-          </Link>
+            <Icon name="plus" size={30} className="text-gray-900 dark:text-white" />
+          </Glass>
         </Block>
       )}
 
@@ -167,7 +167,7 @@ export default function PlayersScreen({ onNext }) {
       </BlockTitle>
       {match.players.length === 0 ? (
         <Block strong inset className="text-center text-gray-500 dark:text-gray-400">
-          No squad members yet. Tap Add Player to add one.
+          No squad members yet. Tap + to add one.
         </Block>
       ) : (
         <List strong inset>
