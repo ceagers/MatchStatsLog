@@ -72,9 +72,15 @@ export default function SavedMatchesScreen({ onNavigate }) {
     </>
   );
 
+  // The confirmations lift this screen above the fixed tab bar.
+  const modalOpen = confirmDelete !== null || confirmRestore !== null;
+
   if (open) {
     return (
-      <Page colors={{ bgIos: 'bg-transparent' }} className="relative z-10 pb-safe-24">
+      <Page
+        colors={{ bgIos: 'bg-transparent' }}
+        className={`relative pb-safe-24 ${modalOpen ? 'z-40' : 'z-10'}`}
+      >
         <Navbar
           title={open.match.opposition ? `vs ${open.match.opposition}` : 'Saved Match'}
           className="top-0 sticky"
@@ -112,7 +118,10 @@ export default function SavedMatchesScreen({ onNavigate }) {
   }
 
   return (
-    <Page colors={{ bgIos: 'bg-transparent' }} className="relative z-10 pb-safe-24">
+    <Page
+      colors={{ bgIos: 'bg-transparent' }}
+      className={`relative pb-safe-24 ${modalOpen ? 'z-40' : 'z-10'}`}
+    >
       <Navbar title="Saved" large transparent className="top-0 sticky" />
 
       {savedMatches.length === 0 ? (

@@ -23,7 +23,13 @@ export default function PlayersScreen({ onNext }) {
   const [editing, setEditing] = useState(false);
   const [pendingRemove, setPendingRemove] = useState(null);
   const [dragName, setDragName] = useState(null);
+  const [subModalOpen, setSubModalOpen] = useState(false);
   const dragRef = useRef(null);
+
+  // Any open sheet, action sheet or dialog lifts this whole screen above the
+  // fixed tab bar, so the popup and its backdrop cover it like a native modal.
+  const modalOpen =
+    addOpen || menuFor !== null || pendingRemove !== null || subModalOpen;
 
   const [toast, setToast] = useState('');
   const toastTimer = useRef(null);
@@ -97,7 +103,10 @@ export default function PlayersScreen({ onNext }) {
   };
 
   return (
-    <Page colors={{ bgIos: 'bg-transparent' }} className="relative z-10 pb-safe-24">
+    <Page
+      colors={{ bgIos: 'bg-transparent' }}
+      className={`relative pb-safe-24 ${modalOpen ? 'z-40' : 'z-10'}`}
+    >
       <Navbar
         title="Players"
         large
@@ -267,7 +276,7 @@ export default function PlayersScreen({ onNext }) {
         </List>
       )}
 
-      <SubstitutionsPanel />
+      <SubstitutionsPanel onModalOpen={setSubModalOpen} />
 
       <Block className="mt-6">
         <Button

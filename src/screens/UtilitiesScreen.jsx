@@ -35,8 +35,14 @@ export default function UtilitiesScreen() {
     showToast(savedRecord ? 'Saved match updated' : 'Match saved');
   };
 
+  // The export sheet and reset confirmation lift this screen above the tab bar.
+  const modalOpen = confirmReset || exportOpen;
+
   return (
-    <Page colors={{ bgIos: 'bg-transparent' }} className="relative z-10 pb-safe-24">
+    <Page
+      colors={{ bgIos: 'bg-transparent' }}
+      className={`relative pb-safe-24 ${modalOpen ? 'z-40' : 'z-10'}`}
+    >
       <Navbar title="Utilities" large transparent className="top-0 sticky" />
 
       <Block className="!mb-2 !mt-0 text-[13px] text-gray-500 dark:text-gray-400">

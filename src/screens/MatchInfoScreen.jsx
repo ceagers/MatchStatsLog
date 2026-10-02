@@ -35,8 +35,14 @@ export default function MatchInfoScreen({ onNext }) {
     showToast(savedRecord ? 'Saved match updated' : 'Match saved');
   };
 
+  // The settings panel lifts this screen above the fixed tab bar while open.
+  const modalOpen = settingsOpened;
+
   return (
-    <Page colors={{ bgIos: 'bg-transparent' }} className="relative z-10 pb-safe-24">
+    <Page
+      colors={{ bgIos: 'bg-transparent' }}
+      className={`relative pb-safe-24 ${modalOpen ? 'z-40' : 'z-10'}`}
+    >
       <Navbar
         title="Match Info"
         large

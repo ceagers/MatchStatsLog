@@ -37,8 +37,14 @@ export default function TimerScreen({ onNext }) {
     action();
   };
 
+  // The reset confirmation lifts this screen above the fixed tab bar.
+  const modalOpen = confirmReset;
+
   return (
-    <Page colors={{ bgIos: 'bg-transparent' }} className="relative z-10 pb-safe-24">
+    <Page
+      colors={{ bgIos: 'bg-transparent' }}
+      className={`relative pb-safe-24 ${modalOpen ? 'z-40' : 'z-10'}`}
+    >
       <Navbar
         title="Match Clock"
         large

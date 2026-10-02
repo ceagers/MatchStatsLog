@@ -13,7 +13,7 @@ import { haptic } from '../haptics.js';
 
 const MINUTES = Array.from({ length: 120 }, (_, i) => i + 1);
 
-export default function SubstitutionsPanel() {
+export default function SubstitutionsPanel({ onModalOpen }) {
   const { match, addSub, removeSub } = useMatch();
   const names = match.players.map((p) => p.name);
 
@@ -48,6 +48,12 @@ export default function SubstitutionsPanel() {
 
   const sortedSubs = [...match.subs].sort((a, b) => a.minute - b.minute);
   const target = pendingDelete ? match.subs.find((s) => s.id === pendingDelete) : null;
+
+  // Report the confirmation sheet to the host screen, so it can lift itself
+  // (and this panel's action sheet) above the fixed tab bar while it is open.
+  useEffect(() => {
+    if (onModalOpen) onModalOpen(pendingDelete !== null);
+  }, [pendingDelete, onModalOpen]);
 
   const save = () => {
     if (!activeOn || !activeOff || samePlayer) return;

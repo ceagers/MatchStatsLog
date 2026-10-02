@@ -74,8 +74,14 @@ export default function GoalLoggerScreen() {
     historyTimer.current = setTimeout(() => setHistorySaved(''), 1800);
   };
 
+  // Any open action sheet lifts this screen above the fixed tab bar.
+  const modalOpen = pendingDelete !== null;
+
   return (
-    <Page colors={{ bgIos: 'bg-transparent' }} className="relative z-10 pb-safe-24">
+    <Page
+      colors={{ bgIos: 'bg-transparent' }}
+      className={`relative pb-safe-24 ${modalOpen ? 'z-40' : 'z-10'}`}
+    >
       <Navbar
         title="Goal Logger"
         large
