@@ -52,7 +52,9 @@ export const HAPTICS = {
 
   clockStop: { events: [{ intensity: 0.8, sharpness: 0.4, time: 0, type: 'transient' }, { duration: 0.3, intensity: 0.55, releaseTime: 0.24, sharpness: 0.1, time: 0.04, type: 'continuous' }] },
 
-  subLogged: { events: [{ intensity: 0.6, sharpness: 0.2, time: 0, type: 'transient' }, { intensity: 0.85, sharpness: 0.9, time: 0.14, type: 'transient' }] }
+  subLogged: { events: [{ intensity: 0.6, sharpness: 0.2, time: 0, type: 'transient' }, { intensity: 0.85, sharpness: 0.9, time: 0.14, type: 'transient' }] },
+
+  alarm: { events: [{ intensity: 1, sharpness: 0.85, time: 0, type: 'transient' }, { intensity: 0.9, sharpness: 0.85, time: 0.22, type: 'transient' }], loop: 1, loopEnd: 1 }
 };
 
 const channel =
