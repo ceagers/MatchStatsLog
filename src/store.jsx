@@ -226,6 +226,14 @@ export function MatchProvider({ children }) {
   const [match, setMatch] = useState(loadMatch);
   const [savedMatches, setSavedMatches] = useState(loadSaved);
 
+  // Which match the Home screen shows its fixture for: null is the match being
+  // worked on, otherwise the id of a saved match. Ephemeral view state, not
+  // persisted.
+  const [homeViewId, setHomeViewId] = useState(null);
+  // The saved match open in the Saved tab's detail view, so other screens
+  // (Home) can jump straight to it. Also ephemeral.
+  const [savedOpenId, setSavedOpenId] = useState(null);
+
   useEffect(() => {
     try {
       localStorage.setItem(STORE_KEY, JSON.stringify(match));
@@ -245,6 +253,10 @@ export function MatchProvider({ children }) {
   const value = {
     match,
     savedMatches,
+    homeViewId,
+    setHomeView: setHomeViewId,
+    savedOpenId,
+    setSavedOpenId,
 
     setOpposition: (opposition) => setMatch((m) => ({ ...m, opposition })),
 
@@ -422,6 +434,9 @@ export function MatchProvider({ children }) {
     deleteSavedMatch: (id) => {
       setSavedMatches((list) => list.filter((r) => r.id !== id));
       setMatch((m) => (m.savedId === id ? { ...m, savedId: null } : m));
+      // A deleted match can no longer be the Home fixture or the open detail.
+      setHomeViewId((v) => (v === id ? null : v));
+      setSavedOpenId((v) => (v === id ? null : v));
     },
 
     // Bring a saved match back as the live match, so it can be edited again.

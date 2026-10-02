@@ -148,7 +148,7 @@ export default function AppScreen() {
         {tab === 'timer' && <TimerScreen onNext={() => setTab('players')} />}
         {tab === 'players' && <PlayersScreen onNext={() => setTab('goals')} />}
         {tab === 'goals' && <GoalLoggerScreen />}
-        {tab === 'saved' && <SavedMatchesScreen />}
+        {tab === 'saved' && <SavedMatchesScreen onNavigate={setTab} />}
       </div>
 
       <nav

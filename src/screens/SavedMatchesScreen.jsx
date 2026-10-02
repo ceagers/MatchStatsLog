@@ -11,26 +11,32 @@ import {
 import MatchSummary from '../components/MatchSummary.jsx';
 import { haptic } from '../haptics.js';
 
-export default function SavedMatchesScreen() {
-  const { savedMatches, deleteSavedMatch, restoreSavedMatch } = useMatch();
-  const [openId, setOpenId] = useState(null);
+export default function SavedMatchesScreen({ onNavigate }) {
+  const {
+    savedMatches,
+    deleteSavedMatch,
+    restoreSavedMatch,
+    savedOpenId,
+    setSavedOpenId,
+    setHomeView,
+  } = useMatch();
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [confirmRestore, setConfirmRestore] = useState(null);
 
-  const open = savedMatches.find((r) => r.id === openId) || null;
+  const open = savedMatches.find((r) => r.id === savedOpenId) || null;
 
   const doDelete = (id) => {
     haptic('removed');
     deleteSavedMatch(id);
     setConfirmDelete(null);
-    if (openId === id) setOpenId(null);
+    if (savedOpenId === id) setSavedOpenId(null);
   };
 
   const doRestore = (id) => {
     haptic('archived');
     restoreSavedMatch(id);
     setConfirmRestore(null);
-    setOpenId(null);
+    setSavedOpenId(null);
   };
 
   const dialogs = (
@@ -72,7 +78,7 @@ export default function SavedMatchesScreen() {
         <Navbar
           title={open.match.opposition ? `vs ${open.match.opposition}` : 'Saved Match'}
           className="top-0 sticky"
-          left={<NavbarBackLink text="Saved" onClick={() => setOpenId(null)} />}
+          left={<NavbarBackLink text="Saved" onClick={() => setSavedOpenId(null)} />}
         />
 
         <Block className="!mb-0 text-[13px] text-gray-500 dark:text-gray-400">
@@ -83,6 +89,15 @@ export default function SavedMatchesScreen() {
 
         <BlockTitle>Manage</BlockTitle>
         <List strong inset>
+          <ListButton
+            onClick={() => {
+              haptic('tick');
+              setHomeView(open.id);
+              onNavigate('home');
+            }}
+          >
+            Show Fixture On Home
+          </ListButton>
           <ListButton onClick={() => setConfirmRestore(open.id)}>
             Open As Current Match
           </ListButton>
@@ -124,7 +139,7 @@ export default function SavedMatchesScreen() {
                   link
                   onClick={() => {
                     haptic('tick');
-                    setOpenId(record.id);
+                    setSavedOpenId(record.id);
                   }}
                   title={m.opposition ? `vs ${m.opposition}` : 'No opposition'}
                   subtitle={[m.homeAway, formatDate(m.date)].filter(Boolean).join(' · ')}
