@@ -5,6 +5,7 @@
 
 import { useState } from 'react';
 import { MatchProvider } from './store.jsx';
+import { useSettings } from './settings.jsx';
 import { Icon } from './icons.js';
 import HomeScreen from './screens/HomeScreen.jsx';
 import MatchInfoScreen from './screens/MatchInfoScreen.jsx';
@@ -25,19 +26,21 @@ const TABS = [
 
 export default function AppScreen() {
   const [tab, setTab] = useState('home');
+  const { badgeImage } = useSettings();
 
   return (
     <MatchProvider>
       {/* The club badge as a faint wallpaper behind every screen. The screens
           sit above it with clear page backgrounds, so it shows through
-          everywhere the content doesn't already cover. */}
+          everywhere the content doesn't already cover. A custom badge chosen
+          in Settings replaces the bundled one. */}
       <div
         aria-hidden
         className="pointer-events-none fixed inset-0 z-0 overflow-hidden
                    bg-white dark:bg-neutral-900"
       >
         <img
-          src="assets/badge.PNG"
+          src={badgeImage || 'assets/badge.PNG'}
           alt=""
           className="h-full w-full object-cover object-center
                      opacity-[0.15] dark:opacity-50"

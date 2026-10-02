@@ -2,8 +2,10 @@
 // wallpaper, with the title over it and one way in: the match info screen.
 
 import { Page, Button } from 'konsta/react';
+import { useSettings } from '../settings.jsx';
 
 export default function HomeScreen({ onNavigate }) {
+  const { homeImage } = useSettings();
   const today = new Date().toLocaleDateString(undefined, {
     weekday: 'long',
     day: 'numeric',
@@ -16,9 +18,9 @@ export default function HomeScreen({ onNavigate }) {
           layer as the badge wallpaper (later in the DOM, so it covers it),
           and unmounts with the tab so the badge returns on every other
           screen. A light solid scrim keeps the title readable over any
-          photo. */}
+          photo. A custom photo chosen in Settings replaces the bundled one. */}
       <div aria-hidden className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
-        <img src="assets/home.jpg" alt="" className="h-full w-full object-cover" />
+        <img src={homeImage || 'assets/home.jpg'} alt="" className="h-full w-full object-cover" />
         <div className="absolute inset-0 bg-black/20" />
       </div>
 

@@ -5,6 +5,8 @@ import {
 } from 'konsta/react';
 import { useMatch, formatSavedAt } from '../store.jsx';
 import MatchSummary from '../components/MatchSummary.jsx';
+import SettingsPanel from './SettingsPanel.jsx';
+import { Icon } from '../icons.js';
 import { haptic } from '../haptics.js';
 
 export default function MatchInfoScreen({ onNext }) {
@@ -13,6 +15,7 @@ export default function MatchInfoScreen({ onNext }) {
     resetMatch, saveCurrentMatch,
   } = useMatch();
   const [confirmReset, setConfirmReset] = useState(false);
+  const [settingsOpened, setSettingsOpened] = useState(false);
   const [toast, setToast] = useState('');
   const toastTimer = useRef(null);
 
@@ -39,6 +42,18 @@ export default function MatchInfoScreen({ onNext }) {
         large
         transparent
         className="top-0 sticky"
+        left={
+          <Link
+            navbar
+            iconOnly
+            onClick={() => {
+              haptic('tick');
+              setSettingsOpened(true);
+            }}
+          >
+            <Icon name="settings" size={24} />
+          </Link>
+        }
         right={<Link navbar onClick={saveMatch}>Save</Link>}
       />
 
@@ -147,6 +162,8 @@ export default function MatchInfoScreen({ onNext }) {
           </>
         }
       />
+
+      <SettingsPanel opened={settingsOpened} onClose={() => setSettingsOpened(false)} />
 
       <Toast position="center" opened={toast !== ''}>
         <div className="shrink">{toast}</div>
