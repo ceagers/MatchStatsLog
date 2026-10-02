@@ -104,7 +104,7 @@ export default function PlayersScreen({ onNext }) {
         transparent
         className="top-0 sticky"
         left={
-          <>
+          <div className="flex items-center gap-4">
             {match.players.length > 0 && (
               <Link
                 navbar
@@ -119,7 +119,7 @@ export default function PlayersScreen({ onNext }) {
             <Link navbar iconOnly onClick={() => setAddOpen(true)}>
               <Icon name="plus" size={26} />
             </Link>
-          </>
+          </div>
         }
         right={<Link navbar onClick={saveMatch}>Save</Link>}
       />
