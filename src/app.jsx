@@ -6,14 +6,16 @@
 import { useState } from 'react';
 import { MatchProvider } from './store.jsx';
 import { Icon } from './icons.js';
+import HomeScreen from './screens/HomeScreen.jsx';
 import MatchInfoScreen from './screens/MatchInfoScreen.jsx';
 import TimerScreen from './screens/TimerScreen.jsx';
 import PlayersScreen from './screens/PlayersScreen.jsx';
 import GoalLoggerScreen from './screens/GoalLoggerScreen.jsx';
 import SavedMatchesScreen from './screens/SavedMatchesScreen.jsx';
 
-// The screens, in the order the coach walks them on the day.
+// Home first, then the screens in the order the coach walks them on the day.
 const TABS = [
+  { id: 'home', label: 'Home', icon: 'house' },
   { id: 'info', label: 'Match', icon: 'clipboard-list' },
   { id: 'timer', label: 'Timer', icon: 'timer' },
   { id: 'players', label: 'Players', icon: 'users' },
@@ -22,7 +24,7 @@ const TABS = [
 ];
 
 export default function AppScreen() {
-  const [tab, setTab] = useState('info');
+  const [tab, setTab] = useState('home');
 
   return (
     <MatchProvider>
@@ -42,6 +44,7 @@ export default function AppScreen() {
         />
       </div>
 
+      {tab === 'home' && <HomeScreen onNavigate={setTab} />}
       {tab === 'info' && <MatchInfoScreen onNext={() => setTab('timer')} />}
       {tab === 'timer' && <TimerScreen onNext={() => setTab('players')} />}
       {tab === 'players' && <PlayersScreen onNext={() => setTab('goals')} />}
