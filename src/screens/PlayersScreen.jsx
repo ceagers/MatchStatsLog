@@ -1,9 +1,9 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
-  Page, Navbar, Block, BlockTitle, List, ListInput, Button, Link, Sheet,
+  Page, Navbar, Block, BlockTitle, List, ListInput, Button, Link, Sheet, Toast,
   Actions, ActionsGroup, ActionsButton, ActionsLabel, Dialog, DialogButton,
 } from 'konsta/react';
-import { useMatch, PERIOD_GREEN, PERIOD_RED } from '../store.jsx';
+import { useMatch, formatSavedAt, PERIOD_GREEN, PERIOD_RED } from '../store.jsx';
 import SubstitutionsPanel from '../components/SubstitutionsPanel.jsx';
 import { Icon } from '../icons.js';
 import { haptic } from '../haptics.js';
@@ -15,7 +15,7 @@ const PERIOD_STYLES = [
 ];
 
 export default function PlayersScreen({ onNext }) {
-  const { match, cyclePeriod, addPlayer, removePlayer, clearPeriods, movePlayer } = useMatch();
+  const { match, savedMatches, cyclePeriod, addPlayer, removePlayer, clearPeriods, movePlayer, saveCurrentMatch } = useMatch();
 
   const [addOpen, setAddOpen] = useState(false);
   const [newName, setNewName] = useState('');
@@ -24,6 +24,23 @@ export default function PlayersScreen({ onNext }) {
   const [pendingRemove, setPendingRemove] = useState(null);
   const [dragName, setDragName] = useState(null);
   const dragRef = useRef(null);
+
+  const [toast, setToast] = useState('');
+  const toastTimer = useRef(null);
+  useEffect(() => () => clearTimeout(toastTimer.current), []);
+
+  const showToast = (text) => {
+    setToast(text);
+    clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(''), 1800);
+  };
+
+  const savedRecord = savedMatches.find((r) => r.id === match.savedId) || null;
+  const saveMatch = () => {
+    haptic('archived');
+    saveCurrentMatch();
+    showToast(savedRecord ? 'Saved match updated' : 'Match saved');
+  };
 
   const trimmed = newName.trim();
   const duplicate =
@@ -87,23 +104,24 @@ export default function PlayersScreen({ onNext }) {
         transparent
         className="top-0 sticky"
         left={
-          match.players.length > 0 ? (
-            <Link
-              navbar
-              onClick={() => {
-                haptic('tick');
-                setEditing((on) => !on);
-              }}
-            >
-              {editing ? 'Done' : 'Edit'}
+          <>
+            {match.players.length > 0 && (
+              <Link
+                navbar
+                onClick={() => {
+                  haptic('tick');
+                  setEditing((on) => !on);
+                }}
+              >
+                {editing ? 'Done' : 'Edit'}
+              </Link>
+            )}
+            <Link navbar iconOnly onClick={() => setAddOpen(true)}>
+              <Icon name="plus" size={26} />
             </Link>
-          ) : undefined
+          </>
         }
-        right={
-          <Link navbar iconOnly onClick={() => setAddOpen(true)}>
-            <Icon name="plus" size={26} />
-          </Link>
-        }
+        right={<Link navbar onClick={saveMatch}>Save</Link>}
       />
 
       <Block className="!mb-2 text-[13px] text-gray-500 dark:text-gray-400">
@@ -334,6 +352,10 @@ export default function PlayersScreen({ onNext }) {
           </>
         }
       />
+
+      <Toast position="center" opened={toast !== ''}>
+        <div className="shrink">{toast}</div>
+      </Toast>
     </Page>
   );
 }

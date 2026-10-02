@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Page, Navbar, Block, BlockTitle, List, ListItem, ListInput,
-  Button, Toast, Toggle, Actions, ActionsGroup, ActionsButton, ActionsLabel, Badge,
+  Button, Toast, Toggle, Link, Actions, ActionsGroup, ActionsButton, ActionsLabel, Badge,
 } from 'konsta/react';
-import { useMatch, clockMinute, clockState, CLOCK_STATE_LABELS } from '../store.jsx';
+import { useMatch, formatSavedAt, clockMinute, clockState, CLOCK_STATE_LABELS } from '../store.jsx';
 import MatchClock from '../components/MatchClock.jsx';
 import { Icon } from '../icons.js';
 import { haptic } from '../haptics.js';
@@ -11,7 +11,7 @@ import { haptic } from '../haptics.js';
 const MINUTES = Array.from({ length: 120 }, (_, i) => i + 1);
 
 export default function GoalLoggerScreen() {
-  const { match, addGoal, removeGoal } = useMatch();
+  const { match, savedMatches, addGoal, removeGoal, saveCurrentMatch } = useMatch();
   const names = match.players.map((p) => p.name);
 
   const [minute, setMinute] = useState('1');
@@ -60,9 +60,29 @@ export default function GoalLoggerScreen() {
     setSaved(true);
   };
 
+  // The navbar Save keeps the match record in history, same as the Match screen.
+  const savedRecord = savedMatches.find((r) => r.id === match.savedId) || null;
+  const [historySaved, setHistorySaved] = useState('');
+  const historyTimer = useRef(null);
+  useEffect(() => () => clearTimeout(historyTimer.current), []);
+
+  const saveMatch = () => {
+    haptic('archived');
+    saveCurrentMatch();
+    setHistorySaved(savedRecord ? 'Saved match updated' : 'Match saved');
+    clearTimeout(historyTimer.current);
+    historyTimer.current = setTimeout(() => setHistorySaved(''), 1800);
+  };
+
   return (
     <Page colors={{ bgIos: 'bg-transparent' }} className="relative z-10 pb-safe-24">
-      <Navbar title="Goal Logger" large transparent className="top-0 sticky" />
+      <Navbar
+        title="Goal Logger"
+        large
+        transparent
+        className="top-0 sticky"
+        right={<Link navbar onClick={saveMatch}>Save</Link>}
+      />
 
       <BlockTitle>Match Clock</BlockTitle>
       <List strong inset>
@@ -191,6 +211,10 @@ export default function GoalLoggerScreen() {
 
       <Toast position="center" opened={saved}>
         <div className="shrink">Goal saved</div>
+      </Toast>
+
+      <Toast position="center" opened={historySaved !== ''}>
+        <div className="shrink">{historySaved}</div>
       </Toast>
 
       <Actions opened={pendingDelete !== null} onBackdropClick={() => setPendingDelete(null)}>
