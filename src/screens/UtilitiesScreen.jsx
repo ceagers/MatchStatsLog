@@ -5,7 +5,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import {
-  Page, Navbar, Block, BlockTitle, List, ListButton, Dialog, DialogButton, Toast,
+  Page, Navbar, Block, BlockTitle, List, ListButton, Button, Dialog, DialogButton, Toast,
 } from 'konsta/react';
 import { useMatch, formatSavedAt } from '../store.jsx';
 import ExportSheet from '../components/ExportSheet.jsx';
@@ -20,6 +20,7 @@ export default function UtilitiesScreen() {
   const [exportOpen, setExportOpen] = useState(false);
   const [photosOpen, setPhotosOpen] = useState(false);
   const [photos, setPhotos] = useState([]);
+  const [whatsappText, setWhatsappText] = useState(null);
   const [toast, setToast] = useState('');
   const toastTimer = useRef(null);
 
@@ -37,6 +38,71 @@ export default function UtilitiesScreen() {
     haptic('archived');
     saveCurrentMatch();
     showToast(savedRecord ? 'Saved match updated' : 'Match saved');
+  };
+
+  // The WhatsApp summary, straight from the goal log: scorers in the order
+  // they first scored, a ball for every goal with the minute after each one,
+  // then everyone who assisted. Empty lines aside, it is exactly what gets
+  // pasted into a team chat.
+  const buildWhatsAppText = (goals) => {
+    const sorted = [...goals].sort((a, b) => a.minute - b.minute);
+    const scorerOrder = [];
+    const scorerMinutes = new Map();
+    const assistOrder = [];
+    const assistCounts = new Map();
+    sorted.forEach((g) => {
+      if (g.scorer) {
+        if (!scorerMinutes.has(g.scorer)) {
+          scorerMinutes.set(g.scorer, []);
+          scorerOrder.push(g.scorer);
+        }
+        scorerMinutes.get(g.scorer).push(g.minute);
+      }
+      if (g.assist) {
+        if (!assistCounts.has(g.assist)) {
+          assistCounts.set(g.assist, 0);
+          assistOrder.push(g.assist);
+        }
+        assistCounts.set(g.assist, assistCounts.get(g.assist) + 1);
+      }
+    });
+    const goalLines = scorerOrder.map(
+      (name) =>
+        `${name} ${'⚽️'.repeat(scorerMinutes.get(name).length)} ` +
+        scorerMinutes.get(name).map((m) => `(${m})`).join(' ')
+    );
+    const assistLines = assistOrder.map(
+      (name) => `${name} ${'👟'.repeat(assistCounts.get(name))}`
+    );
+    return [...goalLines, '', ...assistLines].join('\n');
+  };
+
+  const openWhatsApp = () => {
+    haptic('tick');
+    setWhatsappText((open) => (open === null ? buildWhatsAppText(match.goalTimes) : null));
+  };
+
+  const copyWhatsApp = async () => {
+    if (whatsappText === null) return;
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(whatsappText);
+      } else {
+        // Older WebKit: a temporary textarea is the only way onto the clipboard.
+        const hold = document.createElement('textarea');
+        hold.value = whatsappText;
+        hold.style.position = 'fixed';
+        hold.style.opacity = '0';
+        document.body.appendChild(hold);
+        hold.select();
+        document.execCommand('copy');
+        document.body.removeChild(hold);
+      }
+      haptic('archived');
+      showToast('Copied — paste it into WhatsApp');
+    } catch {
+      showToast('Could not copy — select the text by hand');
+    }
   };
 
   // Render the Match Info summary sections as pictures and hand them over in
@@ -107,6 +173,41 @@ export default function UtilitiesScreen() {
         A spreadsheet of this match — fixture, squad with every period, match time, goals
         and substitutions — for Excel, Numbers or Google Sheets. To export a match from
         history, open it as the current match first.
+      </Block>
+
+      <BlockTitle>WhatsApp</BlockTitle>
+      <List strong inset>
+        <ListButton onClick={openWhatsApp}>
+          <span className="inline-flex items-center gap-2">
+            <Icon name="message-circle" size={20} />
+            WhatsApp
+          </span>
+        </ListButton>
+      </List>
+      {whatsappText !== null && (
+        <Block strong inset>
+          {whatsappText.trim() === '' ? (
+            <div className="text-[15px] text-gray-500 dark:text-gray-400">
+              No goals logged yet — the summary appears once the Goal Logger has goals in it.
+            </div>
+          ) : (
+            <>
+              <div className="select-text whitespace-pre-wrap break-words text-[17px] leading-[2]">
+                {whatsappText}
+              </div>
+              <Button className="mt-4" rounded onClick={copyWhatsApp}>
+                Copy
+              </Button>
+              <div className="mt-2 text-[13px] text-gray-500 dark:text-gray-400">
+                Touch and hold the text above to select and copy it, or tap Copy for the whole thing.
+              </div>
+            </>
+          )}
+        </Block>
+      )}
+      <Block className="!mt-1 text-[13px] text-gray-500 dark:text-gray-400">
+        A short goal-and-assist summary built from the Goal Logger — a ball for every
+        goal with its minute, a boot for every assist — ready to paste into the team chat.
       </Block>
 
       <BlockTitle>Reset</BlockTitle>
