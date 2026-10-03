@@ -118,10 +118,11 @@ export default function UtilitiesScreen() {
   const modalOpen = confirmReset || exportOpen || photosOpen;
 
   return (
-    <Page
-      colors={{ bgIos: 'bg-transparent' }}
-      className={`relative pb-safe-24 ${modalOpen ? 'z-40' : 'z-10'}`}
-    >
+    <>
+      <Page
+        colors={{ bgIos: 'bg-transparent' }}
+        className={`relative pb-safe-24 ${modalOpen ? 'z-40' : 'z-10'}`}
+      >
       <Navbar title="Utilities" large transparent className="top-0 sticky" />
 
       <Block className="!mb-2 !mt-0 text-[13px] text-gray-500 dark:text-gray-400">
