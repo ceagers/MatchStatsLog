@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Page, Navbar, Block, BlockTitle, List, ListItem, ListInput,
-  Button, Toast, Toggle, Link, Actions, ActionsGroup, ActionsButton, ActionsLabel, Badge,
+  Button, Toggle, Link, Actions, ActionsGroup, ActionsButton, ActionsLabel, Badge,
 } from 'konsta/react';
 import { useMatch, formatSavedAt, clockMinute, clockState, CLOCK_STATE_LABELS } from '../store.jsx';
+import { showToast } from '../toast.jsx';
 import MatchClock from '../components/MatchClock.jsx';
 import { Icon } from '../icons.js';
 import { haptic } from '../haptics.js';
@@ -18,15 +19,8 @@ export default function GoalLoggerScreen() {
   const [scorer, setScorer] = useState(names[0] || '');
   const [assist, setAssist] = useState('');
   const [notes, setNotes] = useState('');
-  const [saved, setSaved] = useState(false);
   const [pendingDelete, setPendingDelete] = useState(null);
   const [followClock, setFollowClock] = useState(true);
-
-  useEffect(() => {
-    if (!saved) return undefined;
-    const id = setTimeout(() => setSaved(false), 1800);
-    return () => clearTimeout(id);
-  }, [saved]);
 
   // While the clock is running the minute rides along with it; picking a minute
   // by hand stops it following.
@@ -57,21 +51,16 @@ export default function GoalLoggerScreen() {
     });
     setAssist('');
     setNotes('');
-    setSaved(true);
+    showToast('Goal saved');
   };
 
   // The navbar Save keeps the match record in history, same as the Match screen.
   const savedRecord = savedMatches.find((r) => r.id === match.savedId) || null;
-  const [historySaved, setHistorySaved] = useState('');
-  const historyTimer = useRef(null);
-  useEffect(() => () => clearTimeout(historyTimer.current), []);
 
   const saveMatch = () => {
     haptic('archived');
     saveCurrentMatch();
-    setHistorySaved(savedRecord ? 'Saved match updated' : 'Match saved');
-    clearTimeout(historyTimer.current);
-    historyTimer.current = setTimeout(() => setHistorySaved(''), 1800);
+    showToast(savedRecord ? 'Saved match updated' : 'Match saved');
   };
 
   // Any open action sheet lifts this screen above the fixed tab bar.
@@ -214,14 +203,6 @@ export default function GoalLoggerScreen() {
           ))}
         </List>
       )}
-
-      <Toast position="center" opened={saved}>
-        <div className="shrink">Goal saved</div>
-      </Toast>
-
-      <Toast position="center" opened={historySaved !== ''}>
-        <div className="shrink">{historySaved}</div>
-      </Toast>
 
       <Actions opened={pendingDelete !== null} onBackdropClick={() => setPendingDelete(null)}>
         <ActionsGroup>

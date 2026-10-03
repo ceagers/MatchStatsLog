@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import {
-  Page, Navbar, Block, BlockTitle, List, ListInput, Button, Link, Toast,
+  Page, Navbar, Block, BlockTitle, List, ListInput, Button, Link,
 } from 'konsta/react';
 import { useMatch, formatSavedAt } from '../store.jsx';
+import { showToast } from '../toast.jsx';
 import MatchSummary from '../components/MatchSummary.jsx';
 import SettingsPanel from './SettingsPanel.jsx';
 import { Icon } from '../icons.js';
@@ -14,16 +15,6 @@ export default function MatchInfoScreen({ onNext }) {
     saveCurrentMatch,
   } = useMatch();
   const [settingsOpened, setSettingsOpened] = useState(false);
-  const [toast, setToast] = useState('');
-  const toastTimer = useRef(null);
-
-  useEffect(() => () => clearTimeout(toastTimer.current), []);
-
-  const showToast = (text) => {
-    setToast(text);
-    clearTimeout(toastTimer.current);
-    toastTimer.current = setTimeout(() => setToast(''), 1800);
-  };
 
   const savedRecord = savedMatches.find((r) => r.id === match.savedId) || null;
 
@@ -125,10 +116,6 @@ export default function MatchInfoScreen({ onNext }) {
       </Block>
 
       <SettingsPanel opened={settingsOpened} onClose={() => setSettingsOpened(false)} />
-
-      <Toast position="center" opened={toast !== ''}>
-        <div className="shrink">{toast}</div>
-      </Toast>
     </Page>
   );
 }

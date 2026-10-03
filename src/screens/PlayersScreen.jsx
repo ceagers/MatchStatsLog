@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import {
-  Page, Navbar, Block, BlockTitle, List, ListInput, Button, Link, Sheet, Toast,
+  Page, Navbar, Block, BlockTitle, List, ListInput, Button, Link, Sheet,
   Glass, Actions, ActionsGroup, ActionsButton, ActionsLabel, Dialog, DialogButton,
 } from 'konsta/react';
 import { useMatch, formatSavedAt, PERIOD_GREEN, PERIOD_RED } from '../store.jsx';
+import { showToast } from '../toast.jsx';
 import SubstitutionsPanel from '../components/SubstitutionsPanel.jsx';
 import { Icon } from '../icons.js';
 import { haptic } from '../haptics.js';
@@ -30,16 +31,6 @@ export default function PlayersScreen({ onNext }) {
   // fixed tab bar, so the popup and its backdrop cover it like a native modal.
   const modalOpen =
     addOpen || menuFor !== null || pendingRemove !== null || subModalOpen;
-
-  const [toast, setToast] = useState('');
-  const toastTimer = useRef(null);
-  useEffect(() => () => clearTimeout(toastTimer.current), []);
-
-  const showToast = (text) => {
-    setToast(text);
-    clearTimeout(toastTimer.current);
-    toastTimer.current = setTimeout(() => setToast(''), 1800);
-  };
 
   const savedRecord = savedMatches.find((r) => r.id === match.savedId) || null;
   const saveMatch = () => {
@@ -374,9 +365,6 @@ export default function PlayersScreen({ onNext }) {
         }
       />
 
-      <Toast position="center" opened={toast !== ''}>
-        <div className="shrink">{toast}</div>
-      </Toast>
     </Page>
   );
 }

@@ -3,11 +3,12 @@
 // were moved here from the Match Info screen and the match summary so the
 // screens a coach works through on the day stay focused on the match itself.
 
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import {
-  Page, Navbar, Block, BlockTitle, List, ListButton, Button, Dialog, DialogButton, Toast,
+  Page, Navbar, Block, BlockTitle, List, ListButton, Button, Dialog, DialogButton,
 } from 'konsta/react';
 import { useMatch, formatSavedAt } from '../store.jsx';
+import { showToast } from '../toast.jsx';
 import ExportSheet from '../components/ExportSheet.jsx';
 import PhotosSheet from '../components/PhotosSheet.jsx';
 import { buildMatchPhotos } from '../photos.js';
@@ -21,16 +22,6 @@ export default function UtilitiesScreen() {
   const [photosOpen, setPhotosOpen] = useState(false);
   const [photos, setPhotos] = useState([]);
   const [whatsappText, setWhatsappText] = useState(null);
-  const [toast, setToast] = useState('');
-  const toastTimer = useRef(null);
-
-  useEffect(() => () => clearTimeout(toastTimer.current), []);
-
-  const showToast = (text) => {
-    setToast(text);
-    clearTimeout(toastTimer.current);
-    toastTimer.current = setTimeout(() => setToast(''), 1800);
-  };
 
   const savedRecord = savedMatches.find((r) => r.id === match.savedId) || null;
 
@@ -257,12 +248,6 @@ export default function UtilitiesScreen() {
       />
 
       </Page>
-
-      {/* The saved/copied confirmation renders outside the page's layer, so it
-          floats above the tab bar instead of being covered by it. */}
-      <Toast position="center" opened={toast !== ''} className="z-50">
-        <div className="shrink">{toast}</div>
-      </Toast>
     </>
   );
 }

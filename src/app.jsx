@@ -9,6 +9,7 @@ import { MatchProvider } from './store.jsx';
 import { useSettings } from './settings.jsx';
 import { Icon } from './icons.js';
 import { haptic } from './haptics.js';
+import { ToastHost } from './toast.jsx';
 import HomeScreen from './screens/HomeScreen.jsx';
 import MatchInfoScreen from './screens/MatchInfoScreen.jsx';
 import TimerScreen from './screens/TimerScreen.jsx';
@@ -182,6 +183,10 @@ export default function AppScreen() {
           })}
         </div>
       </nav>
+
+      {/* The shared confirmation toast lives here, above everything the
+          screens render, so the tab bar can never cover it. */}
+      <ToastHost />
     </MatchProvider>
   );
 }
