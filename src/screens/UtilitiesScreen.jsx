@@ -9,6 +9,8 @@ import {
 } from 'konsta/react';
 import { useMatch, formatSavedAt } from '../store.jsx';
 import ExportSheet from '../components/ExportSheet.jsx';
+import PhotosSheet from '../components/PhotosSheet.jsx';
+import { buildMatchPhotos } from '../photos.js';
 import { Icon } from '../icons.js';
 import { haptic } from '../haptics.js';
 
@@ -16,6 +18,8 @@ export default function UtilitiesScreen() {
   const { match, savedMatches, resetMatch, saveCurrentMatch } = useMatch();
   const [confirmReset, setConfirmReset] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
+  const [photosOpen, setPhotosOpen] = useState(false);
+  const [photos, setPhotos] = useState([]);
   const [toast, setToast] = useState('');
   const toastTimer = useRef(null);
 
@@ -35,8 +39,17 @@ export default function UtilitiesScreen() {
     showToast(savedRecord ? 'Saved match updated' : 'Match saved');
   };
 
-  // The export sheet and reset confirmation lift this screen above the tab bar.
-  const modalOpen = confirmReset || exportOpen;
+  // Render the Match Info summary sections as pictures and hand them over in
+  // the photos sheet, where they can be saved to the camera roll or shared.
+  const downloadPhotos = () => {
+    haptic('archived');
+    setPhotos(buildMatchPhotos(match));
+    setPhotosOpen(true);
+  };
+
+  // The export sheet, reset confirmation and photos sheet lift this screen
+  // above the tab bar.
+  const modalOpen = confirmReset || exportOpen || photosOpen;
 
   return (
     <Page
@@ -59,6 +72,21 @@ export default function UtilitiesScreen() {
         {savedRecord
           ? `Last saved ${formatSavedAt(savedRecord.savedAt)}. Saving again updates that record.`
           : 'Keeps a full copy of this match — fixture, squad, clock, goals and substitutions — on the Saved tab.'}
+      </Block>
+
+      <BlockTitle>Photos</BlockTitle>
+      <List strong inset>
+        <ListButton onClick={downloadPhotos}>
+          <span className="inline-flex items-center gap-2">
+            <Icon name="camera" size={20} />
+            Download Photos
+          </span>
+        </ListButton>
+      </List>
+      <Block className="!mt-1 text-[13px] text-gray-500 dark:text-gray-400">
+        Pictures of the fixture, the Period 1 squad, goals & assists by player and
+        the goals logged, made from this match. Save them to your camera roll from
+        the sheet, or share them straight to Messages or WhatsApp.
       </Block>
 
       <BlockTitle>Export</BlockTitle>
@@ -91,6 +119,12 @@ export default function UtilitiesScreen() {
         Clears the fixture details, the match clock, all logged goals and substitutions.
         The squad list is kept, and anything already saved to history stays there.
       </Block>
+
+      <PhotosSheet
+        opened={photosOpen}
+        photos={photos}
+        onClose={() => setPhotosOpen(false)}
+      />
 
       <ExportSheet
         opened={exportOpen}
