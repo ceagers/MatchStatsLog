@@ -255,9 +255,13 @@ export default function UtilitiesScreen() {
         }
       />
 
-      <Toast position="center" opened={toast !== ''}>
+      </Page>
+
+      {/* The saved/copied confirmation renders outside the page's layer, so it
+          floats above the tab bar instead of being covered by it. */}
+      <Toast position="center" opened={toast !== ''} className="z-50">
         <div className="shrink">{toast}</div>
       </Toast>
-    </Page>
+    </>
   );
 }
