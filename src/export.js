@@ -31,7 +31,7 @@ export function matchFileName(match) {
     .trim()
     .replace(/[^A-Za-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
-  return `MatchDay-${who || 'match'}-${match.date || 'undated'}.csv`;
+  return `MatchStatsLog-${who || 'match'}-${match.date || 'undated'}.csv`;
 }
 
 /// The whole match as one spreadsheet: fixture, squad, time, goals, subs.
@@ -66,7 +66,7 @@ export function matchCsv(match) {
 
   const rows = [];
 
-  rows.push(line(['Football Match Day — Match Export']));
+  rows.push(line(['MatchStatsLog — Match Export']));
   rows.push('');
   rows.push(line(['Fixture']));
   rows.push(line(['Opposition', match.opposition]));

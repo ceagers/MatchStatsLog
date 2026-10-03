@@ -104,7 +104,7 @@ function ellipsize(ctx, text, max) {
 }
 
 const captionFor = (match) =>
-  ['FootballMatchDay', match.opposition || null, formatDate(match.date)]
+  ['MatchStatsLog', match.opposition || null, formatDate(match.date)]
     .filter(Boolean)
     .join('  ·  ');
 

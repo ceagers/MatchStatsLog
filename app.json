@@ -1,5 +1,5 @@
 {
-  "name": "FootballMatchDay",
+  "name": "MatchStatsLog",
   "version": "0.1.0",
   "entry": "index.html",
   "framework": "react 19.2.8",
