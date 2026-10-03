@@ -85,8 +85,8 @@ export default function UtilitiesScreen() {
       </List>
       <Block className="!mt-1 text-[13px] text-gray-500 dark:text-gray-400">
         Pictures of the fixture, the Period 1 squad, goals & assists by player and
-        the goals logged, made from this match. Save them to your camera roll from
-        the sheet, or share them straight to Messages or WhatsApp.
+        the goals logged, made from this match. Save All puts the whole set in
+        your camera roll in one go, or share them straight to Messages or WhatsApp.
       </Block>
 
       <BlockTitle>Export</BlockTitle>
