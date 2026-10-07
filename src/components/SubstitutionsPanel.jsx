@@ -3,13 +3,14 @@
 
 import { useEffect, useState } from 'react';
 import {
-  Block, BlockTitle, List, ListItem, ListInput, Button, Toast, Toggle,
+  Block, BlockTitle, List, ListItem, ListInput, Button, Toggle,
   Actions, ActionsGroup, ActionsButton, ActionsLabel, Badge,
 } from 'konsta/react';
 import { useMatch, clockMinute, clockState, CLOCK_STATE_LABELS } from '../store.jsx';
 import MatchClock from './MatchClock.jsx';
 import { Icon } from '../icons.js';
 import { haptic } from '../haptics.js';
+import { showToast } from '../toast.jsx';
 
 const MINUTES = Array.from({ length: 120 }, (_, i) => i + 1);
 
@@ -22,14 +23,7 @@ export default function SubstitutionsPanel({ onModalOpen }) {
   const [offPlayer, setOffPlayer] = useState(names[1] || '');
   const [notes, setNotes] = useState('');
   const [followClock, setFollowClock] = useState(true);
-  const [saved, setSaved] = useState(false);
   const [pendingDelete, setPendingDelete] = useState(null);
-
-  useEffect(() => {
-    if (!saved) return undefined;
-    const id = setTimeout(() => setSaved(false), 1800);
-    return () => clearTimeout(id);
-  }, [saved]);
 
   // While the clock is running the minute rides along with it; picking a minute
   // by hand stops it following.
@@ -65,7 +59,7 @@ export default function SubstitutionsPanel({ onModalOpen }) {
       notes: notes.trim(),
     });
     setNotes('');
-    setSaved(true);
+    showToast('Substitution saved');
   };
 
   return (
@@ -191,10 +185,6 @@ export default function SubstitutionsPanel({ onModalOpen }) {
           ))}
         </List>
       )}
-
-      <Toast position="center" opened={saved}>
-        <div className="shrink">Substitution saved</div>
-      </Toast>
 
       <Actions opened={pendingDelete !== null} onBackdropClick={() => setPendingDelete(null)}>
         <ActionsGroup>
