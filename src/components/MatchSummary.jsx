@@ -150,65 +150,6 @@ export default function MatchSummary({ match, onPeriodsUsed }) {
         ))
       )}
 
-      <BlockTitle>
-        Minutes Played
-        {played.fullTime > 0 ? (
-          <span className="font-normal text-gray-500 dark:text-gray-400">
-            {' '}
-            · full time {played.fullTime}&apos;
-          </span>
-        ) : null}
-      </BlockTitle>
-      {played.source === 'none' ? (
-        <Block strong inset className="text-center text-[14px] text-gray-500 dark:text-gray-400">
-          Minutes played shows once the match clock has been used, or once a
-          game length is set on the Match Info tab.
-        </Block>
-      ) : (
-        <List strong inset>
-          <li className="flex items-center gap-2 px-4 pt-2 pb-1 text-[11px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
-            {played.source === 'clock' ? (
-              <span className="min-w-0 flex-1">From clock &amp; subs</span>
-            ) : onPeriodsUsed ? (
-              <button
-                type="button"
-                onClick={() => {
-                  haptic('tick');
-                  setPeriodsOpen(true);
-                }}
-                className="min-w-0 flex-1 text-left active:opacity-60"
-              >
-                Estimated · {periodsUsed} of 8 periods · {perLabel}' each
-              </button>
-            ) : (
-              <span className="min-w-0 flex-1">
-                Estimated · {periodsUsed} of 8 periods · {perLabel}' each
-              </span>
-            )}
-            <span className="w-14 text-right">Mins</span>
-            <span className="w-14 text-right">%</span>
-          </li>
-          {minutesRows.map((row, i) => (
-            <li
-              key={row.name}
-              className={`flex items-center gap-2 px-4 py-2 ${
-                i < minutesRows.length - 1 ? 'hairline-b' : ''
-              }`}
-            >
-              <span className="min-w-0 flex-1 truncate text-[15px] font-semibold">
-                {row.name}
-              </span>
-              <span className="w-14 text-right text-[15px] tabular-nums">
-                {row.mins}&apos;
-              </span>
-              <span className="w-14 text-right text-[15px] tabular-nums text-gray-500 dark:text-gray-400">
-                {pctOf(row.mins)}%
-              </span>
-            </li>
-          ))}
-        </List>
-      )}
-
       <BlockTitle>Goals &amp; Assists by Player</BlockTitle>
       {scorerTable.length === 0 ? (
         <Block strong inset className="text-center text-gray-500 dark:text-gray-400">
@@ -318,6 +259,65 @@ export default function MatchSummary({ match, onPeriodsUsed }) {
                   </div>
                 ) : null}
               </div>
+            </li>
+          ))}
+        </List>
+      )}
+
+      <BlockTitle>
+        Minutes Played
+        {played.fullTime > 0 ? (
+          <span className="font-normal text-gray-500 dark:text-gray-400">
+            {' '}
+            · full time {played.fullTime}&apos;
+          </span>
+        ) : null}
+      </BlockTitle>
+      {played.source === 'none' ? (
+        <Block strong inset className="text-center text-[14px] text-gray-500 dark:text-gray-400">
+          Minutes played shows once the match clock has been used, or once a
+          game length is set on the Match Info tab.
+        </Block>
+      ) : (
+        <List strong inset>
+          <li className="flex items-center gap-2 px-4 pt-2 pb-1 text-[11px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
+            {played.source === 'clock' ? (
+              <span className="min-w-0 flex-1">From clock &amp; subs</span>
+            ) : onPeriodsUsed ? (
+              <button
+                type="button"
+                onClick={() => {
+                  haptic('tick');
+                  setPeriodsOpen(true);
+                }}
+                className="min-w-0 flex-1 text-left active:opacity-60"
+              >
+                Estimated · {periodsUsed} of 8 periods · {perLabel}' each
+              </button>
+            ) : (
+              <span className="min-w-0 flex-1">
+                Estimated · {periodsUsed} of 8 periods · {perLabel}' each
+              </span>
+            )}
+            <span className="w-14 text-right">Mins</span>
+            <span className="w-14 text-right">%</span>
+          </li>
+          {minutesRows.map((row, i) => (
+            <li
+              key={row.name}
+              className={`flex items-center gap-2 px-4 py-2 ${
+                i < minutesRows.length - 1 ? 'hairline-b' : ''
+              }`}
+            >
+              <span className="min-w-0 flex-1 truncate text-[15px] font-semibold">
+                {row.name}
+              </span>
+              <span className="w-14 text-right text-[15px] tabular-nums">
+                {row.mins}&apos;
+              </span>
+              <span className="w-14 text-right text-[15px] tabular-nums text-gray-500 dark:text-gray-400">
+                {pctOf(row.mins)}%
+              </span>
             </li>
           ))}
         </List>
