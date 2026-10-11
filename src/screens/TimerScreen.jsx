@@ -7,7 +7,7 @@ import {
   Button, Dialog, DialogButton,
 } from 'konsta/react';
 import {
-  useMatch, clockState, CLOCK_STATE_LABELS, sessionMs,
+  useMatch, clockState, CLOCK_STATE_LABELS, totalTimedMs,
 } from '../store.jsx';
 import MatchClock from '../components/MatchClock.jsx';
 import { Icon } from '../icons.js';
@@ -29,7 +29,7 @@ export default function TimerScreen({ onNext }) {
 
   const state = clockState(clock);
   const running = state === 'running';
-  const timed = sessionMs(clock) > 0;
+  const timed = totalTimedMs(clock) > 0;
   const startMinute = Math.round((clock.offsetMs || 0) / 60000);
 
   const tap = (effect, action) => () => {
@@ -67,7 +67,7 @@ export default function TimerScreen({ onNext }) {
           <span>{startMinute > 0 ? `Counting on from ${startMinute}' · timed` : 'Kick-off · timed'}</span>
           <MatchClock
             clock={clock}
-            mode="session"
+            mode="total"
             className="font-semibold tabular-nums text-gray-700 dark:text-gray-200"
           />
         </div>
@@ -121,11 +121,11 @@ export default function TimerScreen({ onNext }) {
       <BlockTitle>Clock</BlockTitle>
       <List strong inset>
         <ListItem
-          title="Timed This Session"
+          title="Total Timed"
           after={
             <MatchClock
               clock={clock}
-              mode="session"
+              mode="total"
               className="font-semibold tabular-nums"
             />
           }
@@ -150,9 +150,10 @@ export default function TimerScreen({ onNext }) {
       </List>
       <Block className="!mt-1 text-[13px] text-gray-500 dark:text-gray-400">
         Start From sets the minute the clock counts on from — 45' for a second half,
-        say — and clears the time already timed. Stop ends the run and keeps the time,
-        Reset takes the clock back to 0:00. Goals and substitutions read their minute
-        off this clock, and the time is saved with the match.
+        say — and banks everything timed so far into the total, so each quarter adds
+        up. Stop ends the run and keeps the time, Reset takes the clock back to 0:00.
+        Goals and substitutions read their minute off this clock, and the time is
+        saved with the match.
       </Block>
 
       <Block className="mt-6">
@@ -172,7 +173,7 @@ export default function TimerScreen({ onNext }) {
         opened={confirmReset}
         onBackdropClick={() => setConfirmReset(false)}
         title="Reset the clock?"
-        content="The clock goes back to 0:00 and the start minute is cleared. The fixture, squad, goals and substitutions are not affected."
+        content="The clock goes back to 0:00 and the start minute and total time are cleared. The fixture, squad, goals and substitutions are not affected."
         buttons={
           <>
             <DialogButton onClick={() => setConfirmReset(false)}>Cancel</DialogButton>

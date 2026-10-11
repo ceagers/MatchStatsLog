@@ -12,7 +12,7 @@ import { haptic } from '../haptics.js';
 export default function MatchInfoScreen({ onNext }) {
   const {
     match, savedMatches, setOpposition, setHomeAway, setDate, setResult, setPotm,
-    saveCurrentMatch,
+    setGameLength, saveCurrentMatch,
   } = useMatch();
   const [settingsOpened, setSettingsOpened] = useState(false);
 
@@ -80,6 +80,23 @@ export default function MatchInfoScreen({ onNext }) {
           value={match.date}
           onChange={(e) => setDate(e.target.value)}
         />
+        <ListInput
+          label="Game Length"
+          type="select"
+          dropdown
+          value={match.gameLength ? String(match.gameLength) : ''}
+          onChange={(e) => {
+            haptic('bump');
+            setGameLength(e.target.value);
+          }}
+        >
+          <option value="">Not set</option>
+          {[30, 40, 45, 50, 60, 70, 80, 90].map((m) => (
+            <option key={m} value={String(m)}>
+              {m} minutes
+            </option>
+          ))}
+        </ListInput>
         <ListInput
           label="Result"
           type="text"

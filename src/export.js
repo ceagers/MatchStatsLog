@@ -3,7 +3,8 @@
 // UTF-8.
 
 import {
-  formatDate, formatClock, clockTotalMs, PERIOD_GREEN, PERIOD_RED,
+  formatDate, formatClock, clockTotalMs, computePlayerMinutes,
+  PERIOD_GREEN, PERIOD_RED,
 } from './store.jsx';
 
 const BOM = '\uFEFF';
@@ -76,6 +77,9 @@ export function matchCsv(match) {
   rows.push(line(['POTM', match.potm]));
   rows.push(line(['Match Time', formatClock(clockTotalMs(clock))]));
   rows.push(line(['Started From', startMinute > 0 ? `${startMinute} minutes` : 'Kick-off']));
+  rows.push(
+    line(['Game Length', match.gameLength ? `${match.gameLength} minutes` : 'Not set'])
+  );
   rows.push('');
 
   rows.push(line(['Squad']));
@@ -100,6 +104,28 @@ export function matchCsv(match) {
   });
   rows.push(line(['Total', ...Array(8).fill(''), totalGoals, totalAssists, '', '']));
   rows.push('');
+
+  const played = computePlayerMinutes(match);
+  if (played.source !== 'none') {
+    rows.push(
+      line([
+        'Minutes Played',
+        played.source === 'clock'
+          ? 'from clock & substitutions'
+          : 'estimated from the periods grid',
+      ])
+    );
+    rows.push(line(['Player', 'Minutes', 'Percent Of Game']));
+    const minutesRows = match.players
+      .map((p) => ({ name: p.name, mins: played.minutes.get(p.name) || 0 }))
+      .sort((a, b) => b.mins - a.mins || a.name.localeCompare(b.name));
+    minutesRows.forEach((r) => {
+      const pct =
+        played.fullTime > 0 ? Math.round((r.mins / played.fullTime) * 100) : 0;
+      rows.push(line([r.name, r.mins, `${pct}%`]));
+    });
+    rows.push('');
+  }
 
   rows.push(line(['Goals & Assists By Player']));
   rows.push(line(['Player', 'Goals', 'Assists']));

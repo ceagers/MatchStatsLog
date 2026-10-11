@@ -33,7 +33,16 @@ function makePlayer(name) {
 // offsetMs is the minute the clock counts on from — 45' for a second half, say.
 
 export function makeClock() {
-  return { running: false, stopped: false, startedAt: null, elapsedMs: 0, offsetMs: 0 };
+  return {
+    running: false,
+    stopped: false,
+    startedAt: null,
+    elapsedMs: 0,
+    offsetMs: 0,
+    // Everything timed across the whole match, banked each time the start
+    // minute is moved on — so four stop-and-restart quarters still add up.
+    timedMs: 0,
+  };
 }
 
 /// Time counted since the clock was started, ignoring the start minute.
@@ -46,6 +55,16 @@ export function sessionMs(clock, at = Date.now()) {
       ? Math.max(0, at - clock.startedAt)
       : 0;
   return banked + run;
+}
+
+/// Everything timed across the whole match, start-minute offsets aside: the
+/// running total is banked each time the clock is moved on, so several
+/// stop-and-restart segments add up to one figure.
+export function totalTimedMs(clock, at = Date.now()) {
+  if (!clock) return 0;
+  const banked =
+    Number.isFinite(clock.timedMs) && clock.timedMs > 0 ? clock.timedMs : 0;
+  return banked + sessionMs(clock, at);
 }
 
 /// The match time on the clock: the start minute plus everything timed since.
@@ -97,12 +116,21 @@ function normaliseClock(raw) {
     0
   );
   const elapsed = Number.isFinite(c.elapsedMs) && c.elapsedMs > 0 ? c.elapsedMs : 0;
+  const offset = Number.isFinite(c.offsetMs) && c.offsetMs > 0 ? c.offsetMs : 0;
+  const timedMs =
+    Number.isFinite(c.timedMs) && c.timedMs > 0
+      ? c.timedMs
+      : // Records from before the running total was tracked moved the start
+        // minute on to wherever the clock read, so it stands in for the time
+        // already timed.
+        offset;
   return {
     running,
     stopped: c.stopped === true && !running,
     startedAt: running ? c.startedAt : null,
     elapsedMs: elapsed + legacy,
-    offsetMs: Number.isFinite(c.offsetMs) && c.offsetMs > 0 ? c.offsetMs : 0,
+    offsetMs: offset,
+    timedMs,
   };
 }
 
@@ -110,7 +138,13 @@ function normaliseClock(raw) {
 // saved time never creeps forward.
 function freezeClock(raw) {
   const clock = normaliseClock(raw);
-  return { ...clock, running: false, startedAt: null, elapsedMs: sessionMs(clock) };
+  return {
+    ...clock,
+    running: false,
+    startedAt: null,
+    elapsedMs: sessionMs(clock),
+    timedMs: totalTimedMs(clock),
+  };
 }
 
 export function makeMatch() {
@@ -121,6 +155,9 @@ export function makeMatch() {
     result: '',
     // Player of the match, free text.
     potm: '',
+    // Planned length of the game in minutes — 60 or 80, say. 0 until it is
+    // set on the Match Info tab; used as the yardstick for minutes played.
+    gameLength: 0,
     // Set once the match has been written to history, so saving again updates
     // that same record instead of piling up duplicates.
     savedId: null,
@@ -181,12 +218,70 @@ function normalise(raw) {
     date: typeof raw.date === 'string' && raw.date ? raw.date.slice(0, 10) : base.date,
     result: typeof raw.result === 'string' ? raw.result : '',
     potm: typeof raw.potm === 'string' ? raw.potm : '',
+    gameLength:
+      Number.isFinite(raw.gameLength) && raw.gameLength > 0
+        ? Math.min(200, Math.round(raw.gameLength))
+        : 0,
     savedId: typeof raw.savedId === 'string' ? raw.savedId : null,
     players: players.length ? players : base.players,
     goalTimes,
     subs,
     clock: normaliseClock(raw.clock),
   };
+}
+
+// --- Minutes played ----------------------------------------------------------
+// Who was on the pitch, and for how long. When the clock has been used, the
+// total comes from the substitution log: green Period 1 players are on from
+// kick-off, each logged sub moves its pair at that minute, and anyone still
+// on comes off at full time. Without the clock, each green period in the
+// grid counts as one period of the game length set on the Match Info tab.
+
+export function computePlayerMinutes(match) {
+  const players = Array.isArray(match?.players) ? match.players : [];
+  const minutes = new Map();
+  const totalMs = clockTotalMs(match?.clock);
+
+  if (totalMs >= 60000) {
+    const fullTime = Math.max(1, Math.floor(totalMs / 60000));
+    const onSince = new Map();
+    const enter = (name, at) => {
+      if (name && !onSince.has(name)) {
+        onSince.set(name, Math.max(0, Math.min(at, fullTime)));
+      }
+    };
+    const exit = (name, at) => {
+      if (!name || !onSince.has(name)) return;
+      const from = onSince.get(name);
+      const to = Math.max(0, Math.min(at, fullTime));
+      minutes.set(name, (minutes.get(name) || 0) + Math.max(0, to - from));
+      onSince.delete(name);
+    };
+    players
+      .filter((p) => p.periods[0] === PERIOD_GREEN)
+      .forEach((p) => enter(p.name, 0));
+    [...(Array.isArray(match.subs) ? match.subs : [])]
+      .slice()
+      .sort((a, b) => a.minute - b.minute)
+      .forEach((s) => {
+        exit(s.off, s.minute);
+        enter(s.on, s.minute);
+      });
+    onSince.forEach((_from, name) => exit(name, fullTime));
+    return { source: 'clock', fullTime, minutes };
+  }
+
+  const gameLength = Number.isFinite(match?.gameLength) ? match.gameLength : 0;
+  if (gameLength > 0) {
+    const per = gameLength / 8;
+    players.forEach((p) => {
+      const greens = p.periods.filter((s) => s === PERIOD_GREEN).length;
+      minutes.set(p.name, Math.round(greens * per));
+    });
+    return { source: 'periods', fullTime: gameLength, minutes };
+  }
+
+  return { source: 'none', fullTime: 0, minutes };
 }
 
 function loadMatch() {
@@ -267,6 +362,12 @@ export function MatchProvider({ children }) {
     setResult: (result) => setMatch((m) => ({ ...m, result })),
 
     setPotm: (potm) => setMatch((m) => ({ ...m, potm })),
+
+    setGameLength: (value) =>
+      setMatch((m) => {
+        const n = Math.round(Number(value) || 0);
+        return { ...m, gameLength: Math.max(0, Math.min(200, n)) };
+      }),
 
     // Tapping a period cycles grey -> green -> red -> grey.
     cyclePeriod: (name, index) =>
@@ -406,12 +507,20 @@ export function MatchProvider({ children }) {
 
     resetClock: () => setMatch((m) => ({ ...m, clock: makeClock() })),
 
-    // The minute the clock counts on from — 0 is kick-off. Choosing one clears
-    // the time already timed.
+    // The minute the clock counts on from — 0 is kick-off. The clock jumps to
+    // that minute now; everything timed so far is banked into the running
+    // total, so several stop-and-restart segments still add up to one figure.
     setClockStart: (minutes) =>
       setMatch((m) => {
         const chosen = Math.max(0, Math.min(120, Math.round(Number(minutes) || 0)));
-        return { ...m, clock: { ...makeClock(), offsetMs: chosen * 60000 } };
+        return {
+          ...m,
+          clock: {
+            ...makeClock(),
+            offsetMs: chosen * 60000,
+            timedMs: totalTimedMs(m.clock),
+          },
+        };
       }),
 
     // Write the current match into history. Re-saving a match that came from

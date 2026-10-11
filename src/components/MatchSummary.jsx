@@ -4,7 +4,9 @@
 // read identically.
 
 import { Block, BlockTitle, List } from 'konsta/react';
-import { formatDate, PERIOD_GREEN, PERIOD_RED } from '../store.jsx';
+import {
+  computePlayerMinutes, formatDate, PERIOD_GREEN, PERIOD_RED,
+} from '../store.jsx';
 
 export default function MatchSummary({ match }) {
   const sortedGoals = [...match.goalTimes].sort((a, b) => a.minute - b.minute);
@@ -50,6 +52,15 @@ export default function MatchSummary({ match }) {
       ),
     },
   ];
+
+  // Minutes played, computed from the starters, the substitution log and the
+  // clock — or estimated from the periods grid when the clock wasn't used.
+  const played = computePlayerMinutes(match);
+  const minutesRows = match.players
+    .map((p) => ({ name: p.name, mins: played.minutes.get(p.name) || 0 }))
+    .sort((a, b) => b.mins - a.mins || a.name.localeCompare(b.name));
+  const pctOf = (m) =>
+    played.fullTime > 0 ? Math.round((m / played.fullTime) * 100) : 0;
 
   return (
     <>
@@ -109,6 +120,52 @@ export default function MatchSummary({ match }) {
             )}
           </div>
         ))
+      )}
+
+      <BlockTitle>
+        Minutes Played
+        {played.fullTime > 0 ? (
+          <span className="font-normal text-gray-500 dark:text-gray-400">
+            {' '}
+            · full time {played.fullTime}&apos;
+          </span>
+        ) : null}
+      </BlockTitle>
+      {played.source === 'none' ? (
+        <Block strong inset className="text-center text-[14px] text-gray-500 dark:text-gray-400">
+          Minutes played shows once the match clock has been used, or once a
+          game length is set on the Match Info tab.
+        </Block>
+      ) : (
+        <List strong inset>
+          <li className="flex items-center gap-2 px-4 pt-2 pb-1 text-[11px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
+            <span className="min-w-0 flex-1">
+              {played.source === 'clock'
+                ? 'From clock & subs'
+                : 'Estimated from periods'}
+            </span>
+            <span className="w-14 text-right">Mins</span>
+            <span className="w-14 text-right">%</span>
+          </li>
+          {minutesRows.map((row, i) => (
+            <li
+              key={row.name}
+              className={`flex items-center gap-2 px-4 py-2 ${
+                i < minutesRows.length - 1 ? 'hairline-b' : ''
+              }`}
+            >
+              <span className="min-w-0 flex-1 truncate text-[15px] font-semibold">
+                {row.name}
+              </span>
+              <span className="w-14 text-right text-[15px] tabular-nums">
+                {row.mins}&apos;
+              </span>
+              <span className="w-14 text-right text-[15px] tabular-nums text-gray-500 dark:text-gray-400">
+                {pctOf(row.mins)}%
+              </span>
+            </li>
+          ))}
+        </List>
       )}
 
       <BlockTitle>Goals &amp; Assists by Player</BlockTitle>
