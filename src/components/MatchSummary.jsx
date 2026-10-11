@@ -3,12 +3,31 @@
 // live Match screen and any saved match opened from history, so both always
 // read identically.
 
-import { Block, BlockTitle, List } from 'konsta/react';
+import { useState } from 'react';
 import {
-  computePlayerMinutes, formatDate, PERIOD_GREEN, PERIOD_RED,
+  Actions,
+  ActionsButton,
+  ActionsGroup,
+  ActionsLabel,
+  Block,
+  BlockTitle,
+  List,
+} from 'konsta/react';
+import {
+  computePlayerMinutes,
+  effectivePeriodsUsed,
+  formatDate,
+  PERIOD_GREEN,
+  PERIOD_RED,
 } from '../store.jsx';
+import { haptic } from '../haptics.js';
 
-export default function MatchSummary({ match }) {
+// onPeriodsUsed, when given, turns the "periods used" figure in the minutes
+// estimate into a button — tap it to pick how many of the grid's eight
+// columns the match spans (or leave it on auto). The live Match screen passes
+// the live setter; a saved match's detail passes a patch to that record.
+export default function MatchSummary({ match, onPeriodsUsed }) {
+  const [periodsOpen, setPeriodsOpen] = useState(false);
   const sortedGoals = [...match.goalTimes].sort((a, b) => a.minute - b.minute);
   const sortedSubs = [...(match.subs || [])].sort((a, b) => a.minute - b.minute);
 
@@ -61,6 +80,15 @@ export default function MatchSummary({ match }) {
     .sort((a, b) => b.mins - a.mins || a.name.localeCompare(b.name));
   const pctOf = (m) =>
     played.fullTime > 0 ? Math.round((m / played.fullTime) * 100) : 0;
+
+  // What the estimate sits on: how many of the eight period columns the match
+  // spans, and how much game time one column stands for.
+  const detected = effectivePeriodsUsed(match);
+  const periodsUsed =
+    played.source === 'periods' ? played.periodsUsed : detected;
+  const perMin =
+    played.source === 'periods' ? match.gameLength / played.periodsUsed : 0;
+  const perLabel = Number.isInteger(perMin) ? `${perMin}` : perMin.toFixed(1);
 
   return (
     <>
@@ -139,11 +167,24 @@ export default function MatchSummary({ match }) {
       ) : (
         <List strong inset>
           <li className="flex items-center gap-2 px-4 pt-2 pb-1 text-[11px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
-            <span className="min-w-0 flex-1">
-              {played.source === 'clock'
-                ? 'From clock & subs'
-                : 'Estimated from periods'}
-            </span>
+            {played.source === 'clock' ? (
+              <span className="min-w-0 flex-1">From clock &amp; subs</span>
+            ) : onPeriodsUsed ? (
+              <button
+                type="button"
+                onClick={() => {
+                  haptic('tick');
+                  setPeriodsOpen(true);
+                }}
+                className="min-w-0 flex-1 text-left active:opacity-60"
+              >
+                Estimated · {periodsUsed} of 8 periods · {perLabel}' each
+              </button>
+            ) : (
+              <span className="min-w-0 flex-1">
+                Estimated · {periodsUsed} of 8 periods · {perLabel}' each
+              </span>
+            )}
             <span className="w-14 text-right">Mins</span>
             <span className="w-14 text-right">%</span>
           </li>
@@ -281,6 +322,51 @@ export default function MatchSummary({ match }) {
           ))}
         </List>
       )}
+
+      {onPeriodsUsed ? (
+        <Actions
+          opened={periodsOpen}
+          onBackdropClick={() => setPeriodsOpen(false)}
+        >
+          <ActionsGroup>
+            <ActionsLabel>
+              Periods used — how many of the grid's 8 columns the match spans
+            </ActionsLabel>
+            <ActionsButton
+              bold={periodsUsed === detected}
+              onClick={() => {
+                haptic('tick');
+                onPeriodsUsed(0);
+                setPeriodsOpen(false);
+              }}
+            >
+              Auto — {detected} from the grid
+            </ActionsButton>
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
+              <ActionsButton
+                key={n}
+                bold={periodsUsed === n}
+                onClick={() => {
+                  haptic('tick');
+                  onPeriodsUsed(n);
+                  setPeriodsOpen(false);
+                }}
+              >
+                {n} period{n === 1 ? '' : 's'} —{' '}
+                {Number.isInteger(match.gameLength / n)
+                  ? match.gameLength / n
+                  : (match.gameLength / n).toFixed(1)}
+                ' each
+              </ActionsButton>
+            ))}
+          </ActionsGroup>
+          <ActionsGroup>
+            <ActionsButton onClick={() => setPeriodsOpen(false)}>
+              Cancel
+            </ActionsButton>
+          </ActionsGroup>
+        </Actions>
+      ) : null}
     </>
   );
 }

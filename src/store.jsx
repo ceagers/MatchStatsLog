@@ -158,6 +158,10 @@ export function makeMatch() {
     // Planned length of the game in minutes — 60 or 80, say. 0 until it is
     // set on the Match Info tab; used as the yardstick for minutes played.
     gameLength: 0,
+    // How many of the grid's eight period columns this match spans — 4 for a
+    // 60-minute game with subs every 15 minutes, say. 0 means work it out
+    // from the furthest column the squad actually marked.
+    periodsUsed: 0,
     // Set once the match has been written to history, so saving again updates
     // that same record instead of piling up duplicates.
     savedId: null,
@@ -222,6 +226,10 @@ function normalise(raw) {
       Number.isFinite(raw.gameLength) && raw.gameLength > 0
         ? Math.min(200, Math.round(raw.gameLength))
         : 0,
+    periodsUsed:
+      Number.isFinite(raw.periodsUsed) && raw.periodsUsed > 0
+        ? Math.min(8, Math.round(raw.periodsUsed))
+        : 0,
     savedId: typeof raw.savedId === 'string' ? raw.savedId : null,
     players: players.length ? players : base.players,
     goalTimes,
@@ -235,7 +243,28 @@ function normalise(raw) {
 // total comes from the substitution log: green Period 1 players are on from
 // kick-off, each logged sub moves its pair at that minute, and anyone still
 // on comes off at full time. Without the clock, each green period in the
-// grid counts as one period of the game length set on the Match Info tab.
+// grid counts as one period of the game length set on the Match Info tab,
+// where "a period" is one of the columns the squad actually marked — the
+// estimate divides the game by the periods used, not always by eight.
+
+/// How many of the grid's eight period columns a match spans: the explicit
+/// override (match.periodsUsed) when set, otherwise the furthest column
+/// anyone marked — so a 60-minute game logged in four periods estimates
+/// correctly without any extra work.
+export function effectivePeriodsUsed(match) {
+  const override =
+    Number.isFinite(match?.periodsUsed) ? Math.round(match.periodsUsed) : 0;
+  if (override > 0 && override <= 8) return override;
+
+  let used = 0;
+  (Array.isArray(match?.players) ? match.players : []).forEach((p) => {
+    if (!Array.isArray(p.periods)) return;
+    p.periods.forEach((s, i) => {
+      if (s !== PERIOD_UNSET && i + 1 > used) used = i + 1;
+    });
+  });
+  return used || 8;
+}
 
 export function computePlayerMinutes(match) {
   const players = Array.isArray(match?.players) ? match.players : [];
@@ -273,12 +302,13 @@ export function computePlayerMinutes(match) {
 
   const gameLength = Number.isFinite(match?.gameLength) ? match.gameLength : 0;
   if (gameLength > 0) {
-    const per = gameLength / 8;
+    const periodsUsed = effectivePeriodsUsed(match);
+    const per = gameLength / periodsUsed;
     players.forEach((p) => {
       const greens = p.periods.filter((s) => s === PERIOD_GREEN).length;
       minutes.set(p.name, Math.round(greens * per));
     });
-    return { source: 'periods', fullTime: gameLength, minutes };
+    return { source: 'periods', fullTime: gameLength, minutes, periodsUsed };
   }
 
   return { source: 'none', fullTime: 0, minutes };
@@ -367,6 +397,12 @@ export function MatchProvider({ children }) {
       setMatch((m) => {
         const n = Math.round(Number(value) || 0);
         return { ...m, gameLength: Math.max(0, Math.min(200, n)) };
+      }),
+
+    setPeriodsUsed: (value) =>
+      setMatch((m) => {
+        const n = Math.round(Number(value) || 0);
+        return { ...m, periodsUsed: Math.max(0, Math.min(8, n)) };
       }),
 
     // Tapping a period cycles grey -> green -> red -> grey.
@@ -547,6 +583,17 @@ export function MatchProvider({ children }) {
       setHomeViewId((v) => (v === id ? null : v));
       setSavedOpenId((v) => (v === id ? null : v));
     },
+
+    // Patch a saved record in place — small corrections (periods used, say)
+    // without pulling the whole match back out of history.
+    updateSavedMatch: (id, patch) =>
+      setSavedMatches((list) =>
+        list.map((r) =>
+          r.id === id
+            ? { ...r, match: normalise({ ...r.match, ...patch }) }
+            : r
+        )
+      ),
 
     // Bring a saved match back as the live match, so it can be edited again.
     restoreSavedMatch: (id) => {

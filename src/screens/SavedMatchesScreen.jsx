@@ -19,6 +19,7 @@ export default function SavedMatchesScreen({ onNavigate }) {
     savedOpenId,
     setSavedOpenId,
     setHomeView,
+    updateSavedMatch,
   } = useMatch();
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [confirmRestore, setConfirmRestore] = useState(null);
@@ -91,7 +92,10 @@ export default function SavedMatchesScreen({ onNavigate }) {
           Saved {formatSavedAt(open.savedAt)}
         </Block>
 
-        <MatchSummary match={open.match} />
+        <MatchSummary
+          match={open.match}
+          onPeriodsUsed={(n) => updateSavedMatch(open.id, { periodsUsed: n })}
+        />
 
         <BlockTitle>Manage</BlockTitle>
         <List strong inset>

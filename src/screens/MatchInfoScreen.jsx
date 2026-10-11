@@ -12,7 +12,7 @@ import { haptic } from '../haptics.js';
 export default function MatchInfoScreen({ onNext }) {
   const {
     match, savedMatches, setOpposition, setHomeAway, setDate, setResult, setPotm,
-    setGameLength, saveCurrentMatch,
+    setGameLength, setPeriodsUsed, saveCurrentMatch,
   } = useMatch();
   const [settingsOpened, setSettingsOpened] = useState(false);
 
@@ -117,7 +117,7 @@ export default function MatchInfoScreen({ onNext }) {
         />
       </List>
 
-      <MatchSummary match={match} />
+      <MatchSummary match={match} onPeriodsUsed={setPeriodsUsed} />
 
       <Block className="mt-6">
         <Button

@@ -112,7 +112,7 @@ export function matchCsv(match) {
         'Minutes Played',
         played.source === 'clock'
           ? 'from clock & substitutions'
-          : 'estimated from the periods grid',
+          : `estimated from ${played.periodsUsed} of 8 periods`,
       ])
     );
     rows.push(line(['Player', 'Minutes', 'Percent Of Game']));
