@@ -16,7 +16,15 @@ const CELL_STYLES = [
 export default function LineupTimeline() {
   const { match } = useMatch();
 
+  // Substitutions made in the same minute share one column — each group
+  // applies all of its changes at once.
   const subs = [...match.subs].sort((a, b) => a.minute - b.minute);
+  const groups = subs.reduce((acc, sub) => {
+    const last = acc[acc.length - 1];
+    if (last && last.minute === sub.minute) last.subs.push(sub);
+    else acc.push({ minute: sub.minute, subs: [sub] });
+    return acc;
+  }, []);
   const hasStart = match.players.some(
     (p) => (p.periods[0] ?? 0) !== 0
   );
@@ -26,14 +34,16 @@ export default function LineupTimeline() {
     return null;
   }
 
-  // Column 0 is the period 1 starting lineup; every further column applies its
-  // substitution on top of the column before it.
-  const columns = subs.reduce(
-    (cols, sub) => {
+  // Column 0 is the period 1 starting lineup; every further column applies
+  // its minute's substitutions on top of the column before it.
+  const columns = groups.reduce(
+    (cols, group) => {
       const states = new Map(cols[cols.length - 1].states);
-      if (sub.off) states.set(sub.off, PERIOD_RED);
-      if (sub.on) states.set(sub.on, PERIOD_GREEN);
-      cols.push({ minute: sub.minute, states });
+      group.subs.forEach((sub) => {
+        if (sub.off) states.set(sub.off, PERIOD_RED);
+        if (sub.on) states.set(sub.on, PERIOD_GREEN);
+      });
+      cols.push({ minute: group.minute, states });
       return cols;
     },
     [
@@ -93,8 +103,9 @@ export default function LineupTimeline() {
       </List>
 
       <Block className="!my-1 text-[12px] text-gray-500 dark:text-gray-400">
-        KO is the period 1 starting lineup. Each further column is one logged
-        substitution — off turns red, on turns green, everyone else carries over.
+        KO is the period 1 starting lineup. Each further column is one
+        substitution — subs logged in the same minute share a column — off
+        turns red, on turns green, everyone else carries over.
       </Block>
     </>
   );
