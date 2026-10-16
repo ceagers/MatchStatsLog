@@ -6,6 +6,7 @@ import {
 import { useMatch, formatSavedAt, PERIOD_GREEN, PERIOD_RED } from '../store.jsx';
 import { showToast } from '../toast.jsx';
 import SubstitutionsPanel from '../components/SubstitutionsPanel.jsx';
+import LineupTimeline from '../components/LineupTimeline.jsx';
 import { Icon } from '../icons.js';
 import { haptic } from '../haptics.js';
 
@@ -268,6 +269,8 @@ export default function PlayersScreen({ onNext }) {
       )}
 
       <SubstitutionsPanel onModalOpen={setSubModalOpen} />
+
+      <LineupTimeline />
 
       <Block className="mt-6">
         <Button
