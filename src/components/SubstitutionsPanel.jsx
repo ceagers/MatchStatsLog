@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import {
   Block, BlockTitle, List, ListItem, ListInput, Button, Toggle,
   Actions, ActionsGroup, ActionsButton, ActionsLabel, Badge,
+  Navbar, Link, Sheet,
 } from 'konsta/react';
 import { useMatch, clockMinute, clockState, CLOCK_STATE_LABELS } from '../store.jsx';
 import MatchClock from './MatchClock.jsx';
@@ -15,7 +16,7 @@ import { showToast } from '../toast.jsx';
 const MINUTES = Array.from({ length: 120 }, (_, i) => i + 1);
 
 export default function SubstitutionsPanel({ onModalOpen }) {
-  const { match, addSub, removeSub } = useMatch();
+  const { match, addSub, removeSub, updateSub } = useMatch();
   const names = match.players.map((p) => p.name);
 
   const [minute, setMinute] = useState('1');
@@ -24,6 +25,12 @@ export default function SubstitutionsPanel({ onModalOpen }) {
   const [notes, setNotes] = useState('');
   const [followClock, setFollowClock] = useState(true);
   const [pendingDelete, setPendingDelete] = useState(null);
+  // The logged substitution being edited, plus its form fields.
+  const [editing, setEditing] = useState(null);
+  const [editMinute, setEditMinute] = useState('1');
+  const [editOn, setEditOn] = useState('');
+  const [editOff, setEditOff] = useState('');
+  const [editNotes, setEditNotes] = useState('');
 
   // While the clock is running the minute rides along with it; picking a minute
   // by hand stops it following.
@@ -46,8 +53,8 @@ export default function SubstitutionsPanel({ onModalOpen }) {
   // Report the confirmation sheet to the host screen, so it can lift itself
   // (and this panel's action sheet) above the fixed tab bar while it is open.
   useEffect(() => {
-    if (onModalOpen) onModalOpen(pendingDelete !== null);
-  }, [pendingDelete, onModalOpen]);
+    if (onModalOpen) onModalOpen(pendingDelete !== null || editing !== null);
+  }, [pendingDelete, editing, onModalOpen]);
 
   const save = () => {
     if (!activeOn || !activeOff || samePlayer) return;
@@ -60,6 +67,31 @@ export default function SubstitutionsPanel({ onModalOpen }) {
     });
     setNotes('');
     showToast('Substitution saved');
+  };
+
+  // Open the edit sheet prefilled with the chosen logged substitution.
+  const startEdit = () => {
+    const sub = target;
+    if (!sub) return;
+    setEditMinute(String(sub.minute));
+    setEditOn(sub.on);
+    setEditOff(sub.off);
+    setEditNotes(sub.notes || '');
+    setEditing(sub.id);
+    setPendingDelete(null);
+  };
+
+  const saveEdit = () => {
+    if (!editing || !editOn || !editOff || editOn === editOff) return;
+    haptic('subLogged');
+    updateSub(editing, {
+      minute: Number(editMinute),
+      on: editOn,
+      off: editOff,
+      notes: editNotes.trim(),
+    });
+    setEditing(null);
+    showToast('Substitution updated');
   };
 
   return (
@@ -191,8 +223,10 @@ export default function SubstitutionsPanel({ onModalOpen }) {
           <ActionsLabel>
             {target ? `${target.minute}' — ${target.on} on for ${target.off}` : 'Substitution'}
           </ActionsLabel>
+          <ActionsButton bold onClick={startEdit}>
+            Edit Substitution
+          </ActionsButton>
           <ActionsButton
-            bold
             className="k-color-brand-red"
             onClick={() => {
               haptic('removed');
@@ -207,6 +241,70 @@ export default function SubstitutionsPanel({ onModalOpen }) {
           <ActionsButton onClick={() => setPendingDelete(null)}>Cancel</ActionsButton>
         </ActionsGroup>
       </Actions>
+
+      <Sheet
+        className="no-safe-areas-top pb-safe"
+        style={{ height: 'auto' }}
+        opened={editing !== null}
+        onBackdropClick={() => setEditing(null)}
+      >
+        <Navbar
+          title="Edit Substitution"
+          right={<Link navbar onClick={saveEdit}>Save</Link>}
+        />
+        <List strong inset>
+          <ListInput
+            label="Minute"
+            type="select"
+            dropdown
+            value={editMinute}
+            onChange={(e) => setEditMinute(e.target.value)}
+          >
+            {MINUTES.map((m) => (
+              <option key={m} value={String(m)}>{`${m}'`}</option>
+            ))}
+          </ListInput>
+
+          <ListInput
+            label="On"
+            type="select"
+            dropdown
+            value={editOn}
+            onChange={(e) => setEditOn(e.target.value)}
+          >
+            {(editOn && !names.includes(editOn) ? [editOn, ...names] : names).map((n) => (
+              <option key={n} value={n}>{n}</option>
+            ))}
+          </ListInput>
+
+          <ListInput
+            label="Off"
+            type="select"
+            dropdown
+            value={editOff}
+            error={editOn !== '' && editOn === editOff ? 'Pick two different players' : undefined}
+            onChange={(e) => setEditOff(e.target.value)}
+          >
+            {(editOff && !names.includes(editOff) ? [editOff, ...names] : names).map((n) => (
+              <option key={n} value={n}>{n}</option>
+            ))}
+          </ListInput>
+
+          <ListInput
+            label="Notes"
+            type="text"
+            value={editNotes}
+            onInput={(e) => setEditNotes(e.target.value)}
+            clearButton
+            onClear={() => setEditNotes('')}
+          />
+        </List>
+        <Block>
+          <Button large rounded onClick={saveEdit} disabled={!editOn || !editOff || editOn === editOff}>
+            Save Changes
+          </Button>
+        </Block>
+      </Sheet>
     </>
   );
 }

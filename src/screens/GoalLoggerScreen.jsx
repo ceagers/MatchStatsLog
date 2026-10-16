@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import {
   Page, Navbar, Block, BlockTitle, List, ListItem, ListInput,
   Button, Toggle, Link, Actions, ActionsGroup, ActionsButton, ActionsLabel, Badge,
+  Sheet,
 } from 'konsta/react';
 import { useMatch, formatSavedAt, clockMinute, clockState, CLOCK_STATE_LABELS } from '../store.jsx';
 import { showToast } from '../toast.jsx';
@@ -12,7 +13,7 @@ import { haptic } from '../haptics.js';
 const MINUTES = Array.from({ length: 120 }, (_, i) => i + 1);
 
 export default function GoalLoggerScreen() {
-  const { match, savedMatches, addGoal, removeGoal, saveCurrentMatch } = useMatch();
+  const { match, savedMatches, addGoal, removeGoal, updateGoal, saveCurrentMatch } = useMatch();
   const names = match.players.map((p) => p.name);
 
   const [minute, setMinute] = useState('1');
@@ -20,6 +21,12 @@ export default function GoalLoggerScreen() {
   const [assist, setAssist] = useState('');
   const [notes, setNotes] = useState('');
   const [pendingDelete, setPendingDelete] = useState(null);
+  // The logged goal being edited, plus its form fields.
+  const [editing, setEditing] = useState(null);
+  const [editMinute, setEditMinute] = useState('1');
+  const [editScorer, setEditScorer] = useState('');
+  const [editAssist, setEditAssist] = useState('');
+  const [editNotes, setEditNotes] = useState('');
   const [followClock, setFollowClock] = useState(true);
 
   // While the clock is running the minute rides along with it; picking a minute
@@ -54,6 +61,31 @@ export default function GoalLoggerScreen() {
     showToast('Goal saved');
   };
 
+  // Open the edit sheet prefilled with the chosen logged goal.
+  const startEdit = () => {
+    const goal = target;
+    if (!goal) return;
+    setEditMinute(String(goal.minute));
+    setEditScorer(goal.scorer);
+    setEditAssist(goal.assist);
+    setEditNotes(goal.notes || '');
+    setEditing(goal.id);
+    setPendingDelete(null);
+  };
+
+  const saveEdit = () => {
+    if (!editing || !editScorer) return;
+    haptic('goalSaved');
+    updateGoal(editing, {
+      minute: Number(editMinute),
+      scorer: editScorer,
+      assist: editAssist,
+      notes: editNotes.trim(),
+    });
+    setEditing(null);
+    showToast('Goal updated');
+  };
+
   // The navbar Save keeps the match record in history, same as the Match screen.
   const savedRecord = savedMatches.find((r) => r.id === match.savedId) || null;
 
@@ -64,7 +96,7 @@ export default function GoalLoggerScreen() {
   };
 
   // Any open action sheet lifts this screen above the fixed tab bar.
-  const modalOpen = pendingDelete !== null;
+  const modalOpen = pendingDelete !== null || editing !== null;
 
   return (
     <Page
@@ -209,8 +241,10 @@ export default function GoalLoggerScreen() {
           <ActionsLabel>
             {target ? `${target.minute}' — ${target.scorer}` : 'Goal'}
           </ActionsLabel>
+          <ActionsButton bold onClick={startEdit}>
+            Edit Goal
+          </ActionsButton>
           <ActionsButton
-            bold
             className="k-color-brand-red"
             onClick={() => {
               haptic('removed');
@@ -225,6 +259,70 @@ export default function GoalLoggerScreen() {
           <ActionsButton onClick={() => setPendingDelete(null)}>Cancel</ActionsButton>
         </ActionsGroup>
       </Actions>
+
+      <Sheet
+        className="no-safe-areas-top pb-safe"
+        style={{ height: 'auto' }}
+        opened={editing !== null}
+        onBackdropClick={() => setEditing(null)}
+      >
+        <Navbar
+          title="Edit Goal"
+          right={<Link navbar onClick={saveEdit}>Save</Link>}
+        />
+        <List strong inset>
+          <ListInput
+            label="Minute"
+            type="select"
+            dropdown
+            value={editMinute}
+            onChange={(e) => setEditMinute(e.target.value)}
+          >
+            {MINUTES.map((m) => (
+              <option key={m} value={String(m)}>{`${m}'`}</option>
+            ))}
+          </ListInput>
+
+          <ListInput
+            label="Scorer"
+            type="select"
+            dropdown
+            value={editScorer}
+            onChange={(e) => setEditScorer(e.target.value)}
+          >
+            {(editScorer && !names.includes(editScorer) ? [editScorer, ...names] : names).map((n) => (
+              <option key={n} value={n}>{n}</option>
+            ))}
+          </ListInput>
+
+          <ListInput
+            label="Assist"
+            type="select"
+            dropdown
+            value={editAssist}
+            onChange={(e) => setEditAssist(e.target.value)}
+          >
+            <option value="">None</option>
+            {(editAssist && !names.includes(editAssist) ? [editAssist, ...names] : names).map((n) => (
+              <option key={n} value={n}>{n}</option>
+            ))}
+          </ListInput>
+
+          <ListInput
+            label="Notes"
+            type="text"
+            value={editNotes}
+            onInput={(e) => setEditNotes(e.target.value)}
+            clearButton
+            onClear={() => setEditNotes('')}
+          />
+        </List>
+        <Block>
+          <Button large rounded onClick={saveEdit} disabled={!editScorer}>
+            Save Changes
+          </Button>
+        </Block>
+      </Sheet>
     </Page>
   );
 }

@@ -487,6 +487,30 @@ export function MatchProvider({ children }) {
         };
       }),
 
+    // Edit a logged goal in place — the scorer/assist tallies move with it,
+    // so player counters stay in step with the log.
+    updateGoal: (id, patch) =>
+      setMatch((m) => {
+        const goal = m.goalTimes.find((g) => g.id === id);
+        if (!goal) return m;
+        const next = { ...goal, ...patch };
+        return {
+          ...m,
+          goalTimes: m.goalTimes.map((g) => (g.id === id ? next : g)),
+          players: m.players.map((p) => {
+            let n = p;
+            const adjust = (name, field, delta) => {
+              if (p.name === name) n = { ...n, [field]: Math.max(0, n[field] + delta) };
+            };
+            adjust(goal.scorer, 'goals', -1);
+            adjust(goal.assist, 'assists', -1);
+            adjust(next.scorer, 'goals', +1);
+            adjust(next.assist, 'assists', +1);
+            return n;
+          }),
+        };
+      }),
+
     addSub: ({ minute, on, off, notes }) =>
       setMatch((m) => ({
         ...m,
@@ -494,6 +518,12 @@ export function MatchProvider({ children }) {
       })),
 
     removeSub: (id) => setMatch((m) => ({ ...m, subs: m.subs.filter((s) => s.id !== id) })),
+
+    updateSub: (id, patch) =>
+      setMatch((m) => ({
+        ...m,
+        subs: m.subs.map((s) => (s.id === id ? { ...s, ...patch } : s)),
+      })),
 
     // Keep whatever squad the user has built up; clear everything else.
     resetMatch: () =>
