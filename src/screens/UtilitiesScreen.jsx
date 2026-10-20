@@ -135,6 +135,16 @@ export default function UtilitiesScreen() {
     },
     ...savedMatches
       .filter((r) => r.id !== match.savedId)
+      // Latest match played first; undated records sink to the bottom.
+      .slice()
+      .sort((a, b) => {
+        const da = (a.match && a.match.date) || '';
+        const db = (b.match && b.match.date) || '';
+        if (da === db) return 0;
+        if (!da) return 1;
+        if (!db) return -1;
+        return da < db ? 1 : -1;
+      })
       .map((r) => ({
         key: r.id,
         match: r.match,
