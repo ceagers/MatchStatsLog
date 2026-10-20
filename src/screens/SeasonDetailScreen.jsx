@@ -684,13 +684,13 @@ function PlayerTotals({ matches, onOpenPlayer }) {
           </Segmented>
         </div>
       )}
-      <BlockTitle>
+      <BlockTitle className="mb-2">
         Squad Totals{' '}
         <span className="font-normal text-gray-500 dark:text-gray-400">
           ({matchesCounted} match{matchesCounted === 1 ? '' : 'es'} counted)
         </span>
       </BlockTitle>
-      <div className="mx-4 overflow-hidden rounded-2xl border border-black/10 bg-white dark:border-white/15 dark:bg-[#1c1c1e]">
+      <div className="mx-4 mt-3 overflow-hidden rounded-2xl border border-black/10 bg-white dark:border-white/15 dark:bg-[#1c1c1e]">
         <table className="w-full border-collapse">
           <thead>
             <tr>
