@@ -219,10 +219,10 @@ export default function PlayerSeasonScreen({ season, playerName, matches, onBack
                     {r.homeAway === 'Home' ? 'H' : r.homeAway === 'Away' ? 'A' : '—'}
                   </td>
                   <td className="w-6 border border-black/10 px-1 py-2 text-center align-middle text-[12px] font-semibold dark:border-white/15">
-                    {r.available ? 'Y' : r.available === null ? '—' : ''}
+                    {r.available ? 'Y' : r.available === null ? '—' : 'N'}
                   </td>
                   <td className="w-6 border border-black/10 px-1 py-2 text-center align-middle text-[12px] font-semibold dark:border-white/15">
-                    {r.started ? 'Y' : r.started === null ? '—' : ''}
+                    {r.started ? 'Y' : r.started === null ? '—' : 'N'}
                   </td>
                   <td className="w-5 border border-black/10 px-1 py-2 text-center align-middle tabular-nums dark:border-white/15">
                     {r.goals}
@@ -248,9 +248,10 @@ export default function PlayerSeasonScreen({ season, playerName, matches, onBack
 
       <Block className="!mt-1 text-[12px] leading-relaxed text-gray-500 dark:text-gray-400">
         Stats cover the division picked at the top — All counts every game in{' '}
-        {season.name}, newest first. H/A is home or away; Av is
-        Y when the player was on the team sheet; St is Y when they started
-        (green Period 1); POTM is Y for a player-of-the-match award. Time comes
+        {season.name}, newest first. H/A is home or away; Av is Y when the
+        player was on the team sheet, N when not; St is Y when they started
+        (green Period 1), N when not; POTM is Y for a player-of-the-match
+        award. Time comes
         from the substitution log when the clock ran, otherwise from green grid
         periods against the game length; % is minutes on the pitch against that
         match's length, counted for matches they were available for. A dash
