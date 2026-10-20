@@ -50,6 +50,15 @@ export default function PlayerSeasonScreen({ season, playerName, matches, onBack
     }
     return '';
   }, [match.players, playerName, matches]);
+
+  // What the exports carry: the typed Name when there is one, shown with the
+  // squad identifier alongside it; the identifier alone otherwise. File names
+  // slug the Name itself when present.
+  const exportLabel = displayName
+    ? displayName === playerName
+      ? displayName
+      : `${displayName} (${playerName})`
+    : playerName;
   const { rows, me } = useMemo(() => {
     const recs =
       compFilter === '__all'
@@ -139,13 +148,13 @@ export default function PlayerSeasonScreen({ season, playerName, matches, onBack
   const playerCsv = useMemo(
     () =>
       exportOpen
-        ? playerSeasonCsv(season.name, playerName, division, me, rows)
+        ? playerSeasonCsv(season.name, exportLabel, division, me, rows)
         : '',
-    [exportOpen, season.name, playerName, division, me, rows]
+    [exportOpen, season.name, exportLabel, division, me, rows]
   );
   const playerFile = useMemo(
-    () => playerSeasonFileName(season.name, playerName),
-    [season.name, playerName]
+    () => playerSeasonFileName(season.name, displayName || playerName),
+    [season.name, displayName, playerName]
   );
 
   const tiles = [
@@ -322,7 +331,7 @@ export default function PlayerSeasonScreen({ season, playerName, matches, onBack
         <ListButton
           onClick={() => {
             haptic('archived');
-            setPhotos(buildPlayerSeasonPhotos(season.name, playerName, division, me, rows));
+            setPhotos(buildPlayerSeasonPhotos(season.name, exportLabel, division, me, rows));
             setPhotosOpen(true);
           }}
         >
@@ -351,7 +360,7 @@ export default function PlayerSeasonScreen({ season, playerName, matches, onBack
         match={null}
         csv={playerCsv}
         fileName={playerFile}
-        description={`A spreadsheet of ${playerName}'s season in ${season.name}${division ? ` (${division})` : ''} — the totals plus a row for every match. For Excel, Numbers or Google Sheets.`}
+        description={`A spreadsheet of ${exportLabel}'s season in ${season.name}${division ? ` (${division})` : ''} — the totals plus a row for every match. For Excel, Numbers or Google Sheets.`}
       />
     </Page>
   );
