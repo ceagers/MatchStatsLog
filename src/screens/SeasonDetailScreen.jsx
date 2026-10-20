@@ -690,90 +690,79 @@ function PlayerTotals({ matches, onOpenPlayer }) {
           ({matchesCounted} match{matchesCounted === 1 ? '' : 'es'} counted)
         </span>
       </BlockTitle>
-      <List strong inset className="border border-black/10 dark:border-white/15">
-        <li className="hairline-b flex items-end gap-2 px-3 pb-1 pt-2">
-          {cols.map((c) => {
-            const active = sort !== null && sort.key === c.key;
-            return (
-              <button
-                key={c.key}
-                type="button"
-                onClick={() => toggleSort(c.key)}
-                className={`${c.w} flex shrink-0 flex-col items-start gap-0.5
-                            text-[11px] font-medium uppercase tracking-wide
-                            transition-colors active:opacity-60 ${
-                              c.key === 'name'
-                                ? ''
-                                : 'border-l border-black/10 dark:border-white/15 '
-                            }${
-                              active
-                                ? 'text-primary'
-                                : 'text-gray-400 dark:text-gray-500'
-                            }`}
+      <div className="mx-4 overflow-hidden rounded-2xl border border-black/10 bg-white dark:border-white/15 dark:bg-[#1c1c1e]">
+        <table className="w-full border-collapse">
+          <thead>
+            <tr>
+              {cols.map((c) => {
+                const active = sort !== null && sort.key === c.key;
+                return (
+                  <th
+                    key={c.key}
+                    className={`border border-black/10 px-1 py-1.5 align-middle dark:border-white/15 ${
+                      active
+                        ? 'text-primary'
+                        : 'text-gray-400 dark:text-gray-500'
+                    }`}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => toggleSort(c.key)}
+                      className="flex w-full flex-col items-center gap-0.5
+                                 text-[11px] font-medium uppercase tracking-wide
+                                 transition-colors active:opacity-60"
+                    >
+                      <span>{c.label}</span>
+                      <Icon
+                        name={active && sort.dir === 'desc' ? 'chevron-down' : 'chevron-up'}
+                        size={11}
+                        className={active ? '' : 'opacity-0'}
+                      />
+                    </button>
+                  </th>
+                );
+              })}
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.map((p) => (
+              <tr
+                key={p.name}
+                onClick={() => {
+                  haptic('tick');
+                  onOpenPlayer(p.name);
+                }}
+                className="cursor-pointer transition-colors active:bg-black/5 dark:active:bg-white/10"
               >
-                <span className={c.key === 'name' ? '' : 'w-full text-center'}>
-                  {c.label}
-                </span>
-                <Icon
-                  name={active && sort.dir === 'desc' ? 'chevron-down' : 'chevron-up'}
-                  size={11}
-                  className={active ? '' : 'opacity-0'}
-                />
-              </button>
-            );
-          })}
-          {/* Matches the chevron on the value rows so the columns line up */}
-          <Icon name="chevron-right" size={14} className="shrink-0 opacity-0" />
-        </li>
-        {sorted.map((p, i) => (
-          <li
-            key={p.name}
-            className={`flex items-center ${
-              i < sorted.length - 1 ? 'hairline-b' : ''
-            }`}
-          >
-            <button
-              type="button"
-              onClick={() => {
-                haptic('tick');
-                onOpenPlayer(p.name);
-              }}
-              className="flex w-full items-center gap-2 px-3 py-2 text-left
-                         transition-colors active:bg-black/5 dark:active:bg-white/10"
-            >
-              <span className="min-w-0 flex-1 truncate text-[15px] font-semibold">
-                {p.name}
-              </span>
-            <span className="w-8 border-l border-black/10 text-center text-[14px] tabular-nums dark:border-white/15">
-              {p.played}
-            </span>
-            <span className="w-8 border-l border-black/10 text-center text-[14px] tabular-nums dark:border-white/15">
-              {p.starts}
-            </span>
-            <span className="w-8 border-l border-black/10 text-center text-[14px] tabular-nums dark:border-white/15">
-              {p.notAvailable}
-            </span>
-            <span className="w-8 border-l border-black/10 text-center text-[14px] tabular-nums dark:border-white/15">
-              {p.goals}
-            </span>
-            <span className="w-8 border-l border-black/10 text-center text-[14px] tabular-nums dark:border-white/15">
-              {p.assists}
-            </span>
-            <span className="w-10 border-l border-black/10 text-center text-[14px] tabular-nums dark:border-white/15">
-              {p.potm}
-            </span>
-            <span className="w-8 border-l border-black/10 text-center text-[14px] font-semibold tabular-nums text-primary dark:border-white/15">
-              {p.percentage === null ? '—' : `${p.percentage}%`}
-            </span>
-            <Icon
-              name="chevron-right"
-              size={14}
-              className="shrink-0 text-gray-400 dark:text-gray-500"
-            />
-            </button>
-          </li>
-        ))}
-      </List>
+                <td className="border border-black/10 px-2 py-2 text-center align-middle text-[15px] font-semibold dark:border-white/15">
+                  {p.name}
+                </td>
+                <td className="border border-black/10 px-1 py-2 text-center align-middle text-[14px] tabular-nums dark:border-white/15">
+                  {p.played}
+                </td>
+                <td className="border border-black/10 px-1 py-2 text-center align-middle text-[14px] tabular-nums dark:border-white/15">
+                  {p.starts}
+                </td>
+                <td className="border border-black/10 px-1 py-2 text-center align-middle text-[14px] tabular-nums dark:border-white/15">
+                  {p.notAvailable}
+                </td>
+                <td className="border border-black/10 px-1 py-2 text-center align-middle text-[14px] tabular-nums dark:border-white/15">
+                  {p.goals}
+                </td>
+                <td className="border border-black/10 px-1 py-2 text-center align-middle text-[14px] tabular-nums dark:border-white/15">
+                  {p.assists}
+                </td>
+                <td className="border border-black/10 px-1 py-2 text-center align-middle text-[14px] tabular-nums dark:border-white/15">
+                  {p.potm}
+                </td>
+                <td className="border border-black/10 px-1 py-2 text-center align-middle text-[14px] font-semibold tabular-nums dark:border-white/15">
+                  {p.percentage === null ? '—' : `${p.percentage}%`}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
       <Block className="!mt-1 text-[12px] leading-relaxed text-gray-500 dark:text-gray-400">
         Stats cover the division picked at the top — All counts every game in
         the season. Counted from the saved matches in this season. Period 1 green is a
