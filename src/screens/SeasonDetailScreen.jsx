@@ -690,8 +690,8 @@ function PlayerTotals({ matches, onOpenPlayer }) {
           ({matchesCounted} match{matchesCounted === 1 ? '' : 'es'} counted)
         </span>
       </BlockTitle>
-      <List strong inset>
-        <li className="flex items-end gap-2 px-3 pb-1 pt-2">
+      <List strong inset className="border border-black/10 dark:border-white/15">
+        <li className="hairline-b flex items-end gap-2 px-3 pb-1 pt-2">
           {cols.map((c) => {
             const active = sort !== null && sort.key === c.key;
             return (
@@ -702,6 +702,10 @@ function PlayerTotals({ matches, onOpenPlayer }) {
                 className={`${c.w} flex shrink-0 flex-col items-start gap-0.5
                             text-[11px] font-medium uppercase tracking-wide
                             transition-colors active:opacity-60 ${
+                              c.key === 'name'
+                                ? ''
+                                : 'border-l border-black/10 dark:border-white/15 '
+                            }${
                               active
                                 ? 'text-primary'
                                 : 'text-gray-400 dark:text-gray-500'
@@ -718,6 +722,8 @@ function PlayerTotals({ matches, onOpenPlayer }) {
               </button>
             );
           })}
+          {/* Matches the chevron on the value rows so the columns line up */}
+          <Icon name="chevron-right" size={14} className="shrink-0 opacity-0" />
         </li>
         {sorted.map((p, i) => (
           <li
@@ -738,15 +744,25 @@ function PlayerTotals({ matches, onOpenPlayer }) {
               <span className="min-w-0 flex-1 truncate text-[15px] font-semibold">
                 {p.name}
               </span>
-            <span className="w-8 text-center text-[14px] tabular-nums">{p.played}</span>
-            <span className="w-8 text-center text-[14px] tabular-nums">{p.starts}</span>
-            <span className="w-8 text-center text-[14px] tabular-nums">
+            <span className="w-8 border-l border-black/10 text-center text-[14px] tabular-nums dark:border-white/15">
+              {p.played}
+            </span>
+            <span className="w-8 border-l border-black/10 text-center text-[14px] tabular-nums dark:border-white/15">
+              {p.starts}
+            </span>
+            <span className="w-8 border-l border-black/10 text-center text-[14px] tabular-nums dark:border-white/15">
               {p.notAvailable}
             </span>
-            <span className="w-8 text-center text-[14px] tabular-nums">{p.goals}</span>
-            <span className="w-8 text-center text-[14px] tabular-nums">{p.assists}</span>
-            <span className="w-10 text-center text-[14px] tabular-nums">{p.potm}</span>
-            <span className="w-8 text-center text-[14px] font-semibold tabular-nums text-primary">
+            <span className="w-8 border-l border-black/10 text-center text-[14px] tabular-nums dark:border-white/15">
+              {p.goals}
+            </span>
+            <span className="w-8 border-l border-black/10 text-center text-[14px] tabular-nums dark:border-white/15">
+              {p.assists}
+            </span>
+            <span className="w-10 border-l border-black/10 text-center text-[14px] tabular-nums dark:border-white/15">
+              {p.potm}
+            </span>
+            <span className="w-8 border-l border-black/10 text-center text-[14px] font-semibold tabular-nums text-primary dark:border-white/15">
               {p.percentage === null ? '—' : `${p.percentage}%`}
             </span>
             <Icon

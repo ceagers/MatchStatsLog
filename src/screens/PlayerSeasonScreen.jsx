@@ -221,25 +221,21 @@ export default function PlayerSeasonScreen({ season, playerName, matches, onBack
                 <span className="w-6 shrink-0 border-l border-black/10 text-center text-[12px] font-medium dark:border-white/15">
                   {r.homeAway === 'Home' ? 'H' : r.homeAway === 'Away' ? 'A' : '—'}
                 </span>
-                <span className="w-6 shrink-0 border-l border-black/10 text-center text-[12px] font-semibold text-primary dark:border-white/15">
+                <span className="w-6 shrink-0 border-l border-black/10 text-center text-[12px] font-semibold dark:border-white/15">
                   {r.available ? 'Y' : r.available === null ? '—' : ''}
                 </span>
-                <span className="w-6 shrink-0 border-l border-black/10 text-center text-[12px] font-semibold text-primary dark:border-white/15">
+                <span className="w-6 shrink-0 border-l border-black/10 text-center text-[12px] font-semibold dark:border-white/15">
                   {r.started ? 'Y' : r.started === null ? '—' : ''}
                 </span>
                 <span className="w-5 shrink-0 border-l border-black/10 text-center tabular-nums dark:border-white/15">{r.goals}</span>
                 <span className="w-5 shrink-0 border-l border-black/10 text-center tabular-nums dark:border-white/15">{r.assists}</span>
-                <span className="w-8 shrink-0 border-l border-black/10 text-center text-[12px] font-semibold text-primary dark:border-white/15">
+                <span className="w-8 shrink-0 border-l border-black/10 text-center text-[12px] font-semibold dark:border-white/15">
                   {r.potm ? 'Y' : ''}
                 </span>
                 <span className="w-9 shrink-0 border-l border-black/10 text-center text-[12px] tabular-nums dark:border-white/15">
                   {r.minutes === null ? '—' : `${r.minutes}m`}
                 </span>
-                <span
-                  className={`w-9 shrink-0 border-l border-black/10 text-right font-semibold tabular-nums dark:border-white/15 ${
-                    r.pct === null ? '' : 'text-primary'
-                  }`}
-                >
+                <span className="w-9 shrink-0 border-l border-black/10 text-right font-semibold tabular-nums dark:border-white/15">
                   {r.pct === null ? '—' : `${r.pct}%`}
                 </span>
               </div>
