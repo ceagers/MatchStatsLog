@@ -622,8 +622,9 @@ function PlayerTotals({ matches }) {
       <Block className="!mt-1 text-[12px] leading-relaxed text-gray-500 dark:text-gray-400">
         Counted from the saved matches in this season. Period 1 green is a
         start, red is the bench, no colour is not available — GP counts green or
-        red. Percentage played is minutes on the pitch against total match
-        time. POTM counts player-of-the-match awards. A match with an unmarked
+        red. Percentage played is minutes on the pitch against the match time of
+        only the games the player was available for (started or benched), not
+        every match logged. POTM counts player-of-the-match awards. A match with an unmarked
         squad grid carries no appearance data and is left out of those counts;
         goals and awards logged in it still count. Tap a column title to sort
         the table; tap again to flip the order.

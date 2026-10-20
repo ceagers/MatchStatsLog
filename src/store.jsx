@@ -784,7 +784,9 @@ export function formatSavedAt(iso) {
 // mark is a start, red is on the bench (still a game played), and no colour
 // is not available. A match whose squad grid was never marked carries no
 // appearance data, so it is left out of the played/started/not-available and
-// minutes counts — goals logged in it still count.
+// minutes counts — goals logged in it still count. Percentage played is the
+// player's minutes against the match time of only the matches they were
+// available for (started or benched), not every match in the season.
 export function computeSeasonStats(records) {
   const blank = () => ({
     played: 0,
@@ -860,8 +862,11 @@ export function computeSeasonStats(records) {
       const { minutes } = computePlayerMinutes(match);
       players.forEach((p) => {
         const t = totals.get(p.name);
+        const first = Array.isArray(p.periods) ? p.periods[0] : PERIOD_UNSET;
         t.minutes += minutes.get(p.name) || 0;
-        t.teamMinutes += matchMinutes;
+        // The percentage denominator counts only the matches this player was
+        // available for — started or benched — not every match logged.
+        if (first !== PERIOD_UNSET) t.teamMinutes += matchMinutes;
       });
     }
   });
