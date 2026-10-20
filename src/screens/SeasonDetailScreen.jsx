@@ -14,6 +14,10 @@ import {
 } from '../store.jsx';
 import MatchSummary from '../components/MatchSummary.jsx';
 import PlayerSeasonScreen from './PlayerSeasonScreen.jsx';
+import ExportSheet from '../components/ExportSheet.jsx';
+import PhotosSheet from '../components/PhotosSheet.jsx';
+import { buildSeasonPhotos } from '../photos.js';
+import { seasonSquadCsv, seasonSquadFileName } from '../export.js';
 import { Icon } from '../icons.js';
 import { haptic } from '../haptics.js';
 import { showToast } from '../toast.jsx';
@@ -48,6 +52,13 @@ export default function SeasonDetailScreen({ season, onNavigate, onBack }) {
   const [confirmRestore, setConfirmRestore] = useState(null);
   // The player whose own season screen is open, or null.
   const [openPlayer, setOpenPlayer] = useState(null);
+
+  // Export & photos for the Players tab's squad totals — the same hand-over
+  // sheets the Utilities screen uses for a match, fed with season data instead.
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exportData, setExportData] = useState(null);
+  const [photosOpen, setPhotosOpen] = useState(false);
+  const [photosData, setPhotosData] = useState([]);
 
   // Match played-day key: ISO dates parse directly; a dd/mm/yyyy fallback
   // keeps older records ordering correctly too. Undated matches sit last.
@@ -207,7 +218,9 @@ export default function SeasonDetailScreen({ season, onNavigate, onBack }) {
     renameOpen ||
     confirmSeasonDelete ||
     confirmDelete !== null ||
-    confirmRestore !== null;
+    confirmRestore !== null ||
+    exportOpen ||
+    photosOpen;
 
   if (openPlayer) {
     return (
@@ -472,7 +485,19 @@ export default function SeasonDetailScreen({ season, onNavigate, onBack }) {
       )}
 
       {seg === 1 && (
-        <PlayerTotals matches={matches} onOpenPlayer={setOpenPlayer} />
+        <PlayerTotals
+          season={season}
+          matches={matches}
+          onOpenPlayer={setOpenPlayer}
+          onExport={(data) => {
+            setExportData(data);
+            setExportOpen(true);
+          }}
+          onPhotos={(list) => {
+            setPhotosData(list);
+            setPhotosOpen(true);
+          }}
+        />
       )}
 
       <Actions opened={moveOpen} onBackdropClick={() => setMoveOpen(false)}>
@@ -557,6 +582,21 @@ export default function SeasonDetailScreen({ season, onNavigate, onBack }) {
         }
       />
 
+      <PhotosSheet
+        opened={photosOpen}
+        photos={photosData}
+        onClose={() => setPhotosOpen(false)}
+      />
+
+      <ExportSheet
+        opened={exportOpen}
+        onClose={() => setExportOpen(false)}
+        match={null}
+        csv={exportData ? exportData.csv : undefined}
+        fileName={exportData ? exportData.fileName : undefined}
+        description={exportData ? exportData.description : undefined}
+      />
+
       {matchDialogs}
     </Page>
   );
@@ -565,12 +605,15 @@ export default function SeasonDetailScreen({ season, onNavigate, onBack }) {
 // The per-player season totals, counted up from the season's saved matches.
 // Tap a column title to sort by it; tap again to flip the order. Tap a
 // player's row to open their own match-by-match screen.
-function PlayerTotals({ matches, onOpenPlayer }) {
+function PlayerTotals({ season, matches, onOpenPlayer, onExport, onPhotos }) {
   const { competitions } = useSettings();
   // Division filter: '__all' counts every game, a value counts only those
   // games. All is the default.
   const [compFilter, setCompFilter] = useState('__all');
   const [sort, setSort] = useState(null); // { key, dir: 'asc' | 'desc' } | null
+
+  // Label for exports and photos — empty string means every division.
+  const division = compFilter === '__all' ? '' : compFilter;
 
   // The division options the season's matches actually use, ordered as the
   // divisions are listed in Settings; values missing from that list follow
@@ -774,6 +817,41 @@ function PlayerTotals({ matches, onOpenPlayer }) {
         goals and awards logged in it still count. Tap a column title to sort
         the table; tap again to flip the order. Tap a player's row to see their
         match-by-match season.
+      </Block>
+
+      <BlockTitle className="mt-2">Export</BlockTitle>
+      <List strong inset>
+        <ListButton
+          onClick={() => {
+            haptic('tick');
+            onExport({
+              csv: seasonSquadCsv(season.name, division, matchesCounted, sorted),
+              fileName: seasonSquadFileName(season.name),
+              description: `A spreadsheet of the squad's ${season.name} totals — games, starts, goals, assists, POTM and % played — counted from the ${matchesCounted} match${matchesCounted === 1 ? '' : 'es'} in ${division || 'every division'}. For Excel, Numbers or Google Sheets.`,
+            });
+          }}
+        >
+          <span className="inline-flex items-center gap-2">
+            <Icon name="file-spreadsheet" size={20} />
+            Export To Excel
+          </span>
+        </ListButton>
+        <ListButton
+          onClick={() => {
+            haptic('archived');
+            onPhotos(buildSeasonPhotos(season.name, division, matchesCounted, sorted));
+          }}
+        >
+          <span className="inline-flex items-center gap-2">
+            <Icon name="camera" size={20} />
+            Export To Photos
+          </span>
+        </ListButton>
+      </List>
+      <Block className="!mt-1 text-[12px] text-gray-500 dark:text-gray-400">
+        Hands over exactly this table — same division filter and sorting. The
+        spreadsheet opens in Excel, Numbers or Google Sheets; the picture saves
+        to your camera roll from the share sheet.
       </Block>
     </>
   );

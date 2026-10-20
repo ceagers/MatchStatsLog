@@ -10,12 +10,27 @@ import { CSV_MIME, matchCsv, matchFileName } from '../export.js';
 import { Icon } from '../icons.js';
 import { haptic } from '../haptics.js';
 
-export default function ExportSheet({ opened, onClose, match }) {
+export default function ExportSheet({
+  opened,
+  onClose,
+  match,
+  // Overrides for season / player exports — when given, the match itself is
+  // unused and the sheet hands over the provided spreadsheet instead.
+  csv: csvProp,
+  fileName: fileNameProp,
+  description: descriptionProp,
+}) {
   const [toast, setToast] = useState('');
 
   // Built when the sheet opens, so the clock time is the one the coach just saw.
-  const csv = useMemo(() => (opened ? matchCsv(match) : ''), [opened, match]);
-  const fileName = useMemo(() => matchFileName(match), [match]);
+  const csv = useMemo(
+    () => (opened ? (csvProp !== undefined ? csvProp : matchCsv(match)) : ''),
+    [opened, csvProp, match]
+  );
+  const fileName = useMemo(
+    () => (fileNameProp !== undefined ? fileNameProp : matchFileName(match)),
+    [fileNameProp, match]
+  );
 
   const canShareFile = useMemo(() => {
     if (!opened || typeof navigator === 'undefined') return false;
@@ -91,8 +106,8 @@ export default function ExportSheet({ opened, onClose, match }) {
         </List>
 
         <Block className="!mt-1 text-[13px] text-gray-500 dark:text-gray-400">
-          Excel, Numbers and Google Sheets all open this file. It carries the fixture,
-          the squad with every period, the match time, the goals and the substitutions.
+          {descriptionProp ??
+            'Excel, Numbers and Google Sheets all open this file. It carries the fixture, the squad with every period, the match time, the goals and the substitutions.'}
         </Block>
 
         <Block className="grid grid-cols-1 gap-3">

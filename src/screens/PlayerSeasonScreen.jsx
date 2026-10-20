@@ -4,7 +4,7 @@
 
 import { useMemo, useState } from 'react';
 import {
-  Page, Navbar, NavbarBackLink, Block, BlockTitle,
+  Page, Navbar, NavbarBackLink, Block, BlockTitle, List, ListButton,
   Segmented, SegmentedButton,
 } from 'konsta/react';
 import { useSettings } from '../settings.jsx';
@@ -14,6 +14,11 @@ import {
   computeSeasonStats, computePlayerMinutes, clockTotalMs, formatDate,
   PERIOD_UNSET, PERIOD_GREEN,
 } from '../store.jsx';
+import ExportSheet from '../components/ExportSheet.jsx';
+import PhotosSheet from '../components/PhotosSheet.jsx';
+import { playerSeasonCsv, playerSeasonFileName } from '../export.js';
+import { buildPlayerSeasonPhotos } from '../photos.js';
+import { Icon } from '../icons.js';
 
 const BLANK_TOTALS = {
   played: 0, starts: 0, notAvailable: 0, goals: 0, assists: 0,
@@ -124,6 +129,25 @@ export default function PlayerSeasonScreen({ season, playerName, matches, onBack
     ];
   }, [matches, competitions]);
 
+  // Export & photos for this player's season — the same hand-over sheets the
+  // Utilities screen uses for a match, fed with season data instead.
+  const [exportOpen, setExportOpen] = useState(false);
+  const [photosOpen, setPhotosOpen] = useState(false);
+  const [photos, setPhotos] = useState([]);
+  const division = compFilter === '__all' ? '' : compFilter;
+  const modalOpen = exportOpen || photosOpen;
+  const playerCsv = useMemo(
+    () =>
+      exportOpen
+        ? playerSeasonCsv(season.name, playerName, division, me, rows)
+        : '',
+    [exportOpen, season.name, playerName, division, me, rows]
+  );
+  const playerFile = useMemo(
+    () => playerSeasonFileName(season.name, playerName),
+    [season.name, playerName]
+  );
+
   const tiles = [
     { label: 'Games', value: me.played },
     { label: 'Starts', value: me.starts },
@@ -137,7 +161,7 @@ export default function PlayerSeasonScreen({ season, playerName, matches, onBack
   return (
     <Page
       colors={{ bgIos: 'bg-transparent' }}
-      className="relative pb-safe-24 z-10"
+      className={`relative pb-safe-24 ${modalOpen ? 'z-40' : 'z-10'}`}
     >
       <Navbar
         title={playerName}
@@ -281,6 +305,54 @@ export default function PlayerSeasonScreen({ season, playerName, matches, onBack
         means the match carries no data for that column — the squad grid was
         never marked, or there is no match time to measure against.
       </Block>
+
+      <BlockTitle className="mt-2">Export</BlockTitle>
+      <List strong inset>
+        <ListButton
+          onClick={() => {
+            haptic('tick');
+            setExportOpen(true);
+          }}
+        >
+          <span className="inline-flex items-center gap-2">
+            <Icon name="file-spreadsheet" size={20} />
+            Export To Excel
+          </span>
+        </ListButton>
+        <ListButton
+          onClick={() => {
+            haptic('archived');
+            setPhotos(buildPlayerSeasonPhotos(season.name, playerName, division, me, rows));
+            setPhotosOpen(true);
+          }}
+        >
+          <span className="inline-flex items-center gap-2">
+            <Icon name="camera" size={20} />
+            Export To Photos
+          </span>
+        </ListButton>
+      </List>
+      <Block className="!mt-1 text-[12px] text-gray-500 dark:text-gray-400">
+        A spreadsheet and pictures of this player's season — the totals and the
+        match-by-match table for the division picked at the top. The spreadsheet
+        opens in Excel, Numbers or Google Sheets; the pictures save to your
+        camera roll from the share sheet.
+      </Block>
+
+      <PhotosSheet
+        opened={photosOpen}
+        photos={photos}
+        onClose={() => setPhotosOpen(false)}
+      />
+
+      <ExportSheet
+        opened={exportOpen}
+        onClose={() => setExportOpen(false)}
+        match={null}
+        csv={playerCsv}
+        fileName={playerFile}
+        description={`A spreadsheet of ${playerName}'s season in ${season.name}${division ? ` (${division})` : ''} — the totals plus a row for every match. For Excel, Numbers or Google Sheets.`}
+      />
     </Page>
   );
 }

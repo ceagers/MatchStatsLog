@@ -401,3 +401,239 @@ export async function dataUrlToFile(dataUrl, name) {
   const blob = await (await fetch(dataUrl)).blob();
   return new File([blob], name, { type: 'image/png' });
 }
+
+// --- Season and player season exports -----------------------------------------
+//
+// The season tables are wider than a match photo needs to be — eight and nine
+// columns of numbers — so these draw on a landscape canvas using the same
+// palette and card language as the match photos.
+
+const TW = 560;
+
+function makeWideCtx(height) {
+  const h = Math.max(120, Math.ceil(height));
+  const canvas = document.createElement('canvas');
+  canvas.width = TW * S;
+  canvas.height = h * S;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(S, S);
+  ctx.fillStyle = BG;
+  ctx.fillRect(0, 0, TW, h);
+  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'left';
+  return { canvas, ctx };
+}
+
+function seasonFooter(ctx, height, seasonName) {
+  ctx.font = font(11);
+  ctx.fillStyle = SECONDARY;
+  ctx.textAlign = 'center';
+  ctx.fillText(`MatchStatsLog  ·  ${seasonName || ''}`, TW / 2, height - 16);
+  ctx.textAlign = 'left';
+}
+
+// One picture of the squad totals table, as filtered and sorted on screen.
+export function buildSeasonPhotos(seasonName, division, matchesCounted, players) {
+  const cols = [
+    { key: 'played', label: 'GP', w: 44 },
+    { key: 'starts', label: 'St', w: 44 },
+    { key: 'notAvailable', label: 'NA', w: 44 },
+    { key: 'goals', label: 'G', w: 44 },
+    { key: 'assists', label: 'A', w: 44 },
+    { key: 'potm', label: 'POTM', w: 54 },
+    { key: 'percentage', label: '%', w: 48 },
+  ];
+  const left = 36;
+  const right = TW - 36;
+  let x = right;
+  const xs = cols.map((c) => { const cx = x; x -= c.w; return cx; });
+  const nameW = xs[xs.length - 1] - cols[cols.length - 1].w - left - 14;
+
+  const headerH = 30;
+  const rowH = 36;
+  const labelCy = 30;
+  const cardY = labelCy + 13;
+  const empty = players.length === 0;
+  const cardH = empty ? 40 : headerH + 8 + players.length * rowH + 12;
+  const height = cardY + cardH + 46;
+  const { canvas, ctx } = makeWideCtx(height);
+
+  sectionLabel(
+    ctx,
+    `Squad Totals — ${division || 'All'} (${matchesCounted} ${
+      matchesCounted === 1 ? 'match' : 'matches'
+    })`,
+    labelCy
+  );
+  card(ctx, cardY, cardH, 20, TW - 40);
+
+  if (empty) {
+    ctx.font = font(14);
+    ctx.fillStyle = SECONDARY;
+    ctx.fillText('No players to count yet.', left, cardY + 20);
+  } else {
+    let y = cardY + 8;
+    ctx.font = font(11, 600);
+    ctx.fillStyle = SECONDARY;
+    ctx.fillText('PLAYER', left, y + headerH / 2);
+    cols.forEach((c, i) => {
+      ctx.textAlign = 'right';
+      ctx.fillText(c.label, xs[i], y + headerH / 2);
+      ctx.textAlign = 'left';
+    });
+    y += headerH;
+    hairline(ctx, left, y, TW - 72);
+    players.forEach((p, i) => {
+      const cy = y + rowH / 2 + 0.5;
+      if (i > 0) hairline(ctx, left, y, TW - 72);
+      ctx.font = font(15, 600);
+      ctx.fillStyle = TEXT;
+      ctx.fillText(ellipsize(ctx, p.name, nameW), left, cy);
+      cols.forEach((c, j) => {
+        const v =
+          c.key === 'percentage'
+            ? (p.percentage === null ? '—' : `${p.percentage}%`)
+            : String(p[c.key]);
+        ctx.font = font(c.key === 'percentage' ? 15 : 14, c.key === 'percentage' ? 600 : 400);
+        ctx.fillStyle = TEXT;
+        ctx.textAlign = 'right';
+        ctx.fillText(v, xs[j], cy);
+        ctx.textAlign = 'left';
+      });
+      y += rowH;
+    });
+  }
+
+  seasonFooter(ctx, height, seasonName);
+  return [{ title: 'Squad Totals', name: 'Squad Totals.png', canvas }].map((p) => ({
+    ...p,
+    dataUrl: p.canvas.toDataURL('image/png'),
+  }));
+}
+
+// One player's season as two pictures: the totals, then the match-by-match
+// table (with the date under each opposition name).
+export function buildPlayerSeasonPhotos(seasonName, playerName, division, me, rows) {
+  const labelCy = 30;
+  const cardY = labelCy + 13;
+
+  // Photo 1 — the season totals, as label:value rows.
+  const totals = [
+    ['Games', me.played],
+    ['Starts', me.starts],
+    ['Goals', me.goals],
+    ['Assists', me.assists],
+    ['POTM', me.potm],
+    ['Minutes', `${me.minutes}m`],
+    ['Played', me.percentage === null ? '—' : `${me.percentage}%`],
+  ];
+  const totalsCardH = totals.length * 30 + 12;
+  const totalsH = cardY + totalsCardH + 46;
+  const t = makeCtx(totalsH);
+  sectionLabel(t.ctx, `${playerName} — Season Totals (${division || 'All'})`, labelCy);
+  card(t.ctx, cardY, totalsCardH);
+  let ty = cardY + 6;
+  totals.forEach(([k, v]) => {
+    t.ctx.font = font(15);
+    t.ctx.fillStyle = SECONDARY;
+    t.ctx.fillText(k, 36, ty + 15);
+    t.ctx.font = font(15, 600);
+    t.ctx.fillStyle = TEXT;
+    t.ctx.textAlign = 'right';
+    t.ctx.fillText(String(v), W - 36, ty + 15);
+    t.ctx.textAlign = 'left';
+    ty += 30;
+  });
+  footer(t.ctx, totalsH, ['MatchStatsLog', seasonName].filter(Boolean).join('  ·  '));
+  const totalsPhoto = {
+    title: 'Season Totals',
+    name: 'Season Totals.png',
+    canvas: t.canvas,
+  };
+
+  // Photo 2 — the match-by-match table.
+  const cols = [
+    { label: 'H/A', w: 30 },
+    { label: 'Av', w: 30 },
+    { label: 'St', w: 30 },
+    { label: 'G', w: 26 },
+    { label: 'A', w: 26 },
+    { label: 'POTM', w: 36 },
+    { label: 'Time', w: 40 },
+    { label: '%', w: 34 },
+  ];
+  const left = 36;
+  const right = TW - 36;
+  let x = right;
+  const xs = cols.map((c) => { const cx = x; x -= c.w; return cx; });
+  const oppW = xs[0] - left - 14;
+
+  const headerH = 30;
+  const rowH = 40;
+  const empty = rows.length === 0;
+  const tableCardH = empty ? 40 : headerH + 8 + rows.length * rowH + 12;
+  const tableH = cardY + tableCardH + 46;
+  const m = makeWideCtx(tableH);
+  const c = m.ctx;
+  sectionLabel(c, `${playerName} — Match by Match (${division || 'All'})`, labelCy);
+  card(c, cardY, tableCardH, 20, TW - 40);
+
+  if (empty) {
+    c.font = font(14);
+    c.fillStyle = SECONDARY;
+    c.fillText('No matches in this season yet.', left, cardY + 20);
+  } else {
+    let y = cardY + 8;
+    c.font = font(11, 600);
+    c.fillStyle = SECONDARY;
+    c.fillText('OPPOSITION', left, y + headerH / 2);
+    cols.forEach((col, i) => {
+      c.textAlign = 'right';
+      c.fillText(col.label.toUpperCase(), xs[i], y + headerH / 2);
+      c.textAlign = 'left';
+    });
+    y += headerH;
+    hairline(c, left, y, TW - 72);
+    rows.forEach((r, i) => {
+      const cy = y + rowH / 2;
+      if (i > 0) hairline(c, left, y, TW - 72);
+      c.font = font(14, 600);
+      c.fillStyle = TEXT;
+      c.fillText(ellipsize(c, r.opposition || 'No opposition', oppW), left, cy - 8);
+      c.font = font(11);
+      c.fillStyle = SECONDARY;
+      c.fillText(formatDate(r.date), left, cy + 10);
+      const vals = [
+        r.homeAway === 'Home' ? 'H' : r.homeAway === 'Away' ? 'A' : '—',
+        r.available === null ? '—' : r.available ? 'Y' : 'N',
+        r.started === null ? '—' : r.started ? 'Y' : 'N',
+        String(r.goals),
+        String(r.assists),
+        r.potm ? 'Y' : '',
+        r.minutes === null ? '—' : `${r.minutes}m`,
+        r.pct === null ? '—' : `${r.pct}%`,
+      ];
+      const weights = [400, 600, 600, 400, 400, 600, 400, 600];
+      vals.forEach((v, j) => {
+        c.font = font(13, weights[j]);
+        c.fillStyle = TEXT;
+        c.textAlign = 'right';
+        c.fillText(v, xs[j], cy);
+        c.textAlign = 'left';
+      });
+      y += rowH;
+    });
+  }
+
+  seasonFooter(c, tableH, seasonName);
+  const tablePhoto = {
+    title: 'Match by Match',
+    name: 'Match by Match.png',
+    canvas: m.canvas,
+  };
+
+  return [totalsPhoto, tablePhoto].map((p) => ({
+    ...p,
+    dataUrl: p.canvas.toDataURL('image/png'),
+  }));
+}

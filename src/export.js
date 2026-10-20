@@ -146,3 +146,87 @@ export function matchCsv(match) {
 
   return `${BOM}${rows.join('\r\n')}\r\n`;
 }
+
+// --- Season and player season exports ----------------------------------------
+
+export function seasonSquadFileName(seasonName) {
+  const who = (seasonName || 'season')
+    .trim()
+    .replace(/[^A-Za-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return `MatchStatsLog-${who || 'season'}-squad-totals.csv`;
+}
+
+export function playerSeasonFileName(seasonName, playerName) {
+  const slug = (s, fallback) =>
+    (s || fallback)
+      .trim()
+      .replace(/[^A-Za-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '') || fallback;
+  return `MatchStatsLog-${slug(seasonName, 'season')}-${slug(playerName, 'player')}-season.csv`;
+}
+
+// The squad totals table — the same numbers the Players tab shows, sorted and
+// division-filtered exactly as on screen.
+export function seasonSquadCsv(seasonName, division, matchesCounted, players) {
+  const rows = [];
+  rows.push(line(['MatchStatsLog — Season Squad Totals']));
+  rows.push('');
+  rows.push(line(['Season', seasonName || '']));
+  rows.push(line(['Division', division || 'All']));
+  rows.push(line(['Matches counted', matchesCounted]));
+  rows.push('');
+  rows.push(line(['Player', 'GP', 'St', 'NA', 'G', 'A', 'POTM', '%']));
+  players.forEach((p) => {
+    rows.push(line([
+      p.name,
+      p.played,
+      p.starts,
+      p.notAvailable,
+      p.goals,
+      p.assists,
+      p.potm,
+      p.percentage === null ? '' : `${p.percentage}%`,
+    ]));
+  });
+  return `${BOM}${rows.join('\r\n')}\r\n`;
+}
+
+// One player's season — the totals tiles, then a row for every match.
+export function playerSeasonCsv(seasonName, playerName, division, me, rows) {
+  const out = [];
+  out.push(line(['MatchStatsLog — Player Season']));
+  out.push('');
+  out.push(line(['Season', seasonName || '']));
+  out.push(line(['Player', playerName]));
+  out.push(line(['Division', division || 'All']));
+  out.push('');
+  out.push(line(['Games', me.played]));
+  out.push(line(['Starts', me.starts]));
+  out.push(line(['Goals', me.goals]));
+  out.push(line(['Assists', me.assists]));
+  out.push(line(['POTM', me.potm]));
+  out.push(line(['Minutes', me.minutes]));
+  out.push(line(['Played', me.percentage === null ? '' : `${me.percentage}%`]));
+  out.push('');
+  out.push(line(['Match by Match']));
+  out.push(line([
+    'Opposition', 'Date', 'H/A', 'Available', 'Started', 'Goals', 'Assists',
+    'POTM', 'Minutes', '%',
+  ]));
+  rows.forEach((r) => {
+    out.push(line([
+      r.opposition || '',
+      formatDate(r.date),
+      r.homeAway === 'Home' ? 'Home' : r.homeAway === 'Away' ? 'Away' : '',
+      r.available === null ? '' : r.available ? 'Y' : 'N',
+      r.started === null ? '' : r.started ? 'Y' : 'N',
+      r.goals,
+      r.assists,
+      r.potm ? 'Y' : '',
+      r.minutes === null ? '' : r.minutes,
+      r.pct === null ? '' : `${r.pct}%`,
+    ]));
+  });
+  return `${BOM}${out.join('\r\n')}\r\n`;
+}
