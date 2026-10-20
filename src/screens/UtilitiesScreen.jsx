@@ -209,6 +209,41 @@ export default function UtilitiesScreen() {
           : 'Keeps a full copy of this match — fixture, squad, clock, goals and substitutions — on the Season tab.'}
       </Block>
 
+      <BlockTitle>WhatsApp</BlockTitle>
+      <List strong inset>
+        <ListButton onClick={openWhatsApp}>
+          <span className="inline-flex items-center gap-2">
+            <Icon name="message-circle" size={20} />
+            WhatsApp
+          </span>
+        </ListButton>
+      </List>
+      {whatsappText !== null && (
+        <Block strong inset>
+          {whatsappText.trim() === '' ? (
+            <div className="text-[15px] text-gray-500 dark:text-gray-400">
+              No goals logged yet — the summary appears once the Goal Logger has goals in it.
+            </div>
+          ) : (
+            <>
+              <div className="select-text whitespace-pre-wrap break-words text-[17px] leading-[2]">
+                {whatsappText}
+              </div>
+              <Button className="mt-4" rounded onClick={copyWhatsApp}>
+                Copy
+              </Button>
+              <div className="mt-2 text-[13px] text-gray-500 dark:text-gray-400">
+                Touch and hold the text above to select and copy it, or tap Copy for the whole thing.
+              </div>
+            </>
+          )}
+        </Block>
+      )}
+      <Block className="!mt-1 text-[13px] text-gray-500 dark:text-gray-400">
+        A short goal-and-assist summary built from the Goal Logger — a ball for every
+        goal with its minute, a boot for every assist — ready to paste into the team chat.
+      </Block>
+
       <BlockTitle>Photos</BlockTitle>
       <List strong inset>
         <ListButton onClick={downloadPhotos}>
@@ -269,41 +304,6 @@ export default function UtilitiesScreen() {
         period, match time, goals and substitutions. Export hands it over for backup or
         another phone; Import reads one back and rebuilds the match from scratch,
         replacing what is on the phone now.
-      </Block>
-
-      <BlockTitle>WhatsApp</BlockTitle>
-      <List strong inset>
-        <ListButton onClick={openWhatsApp}>
-          <span className="inline-flex items-center gap-2">
-            <Icon name="message-circle" size={20} />
-            WhatsApp
-          </span>
-        </ListButton>
-      </List>
-      {whatsappText !== null && (
-        <Block strong inset>
-          {whatsappText.trim() === '' ? (
-            <div className="text-[15px] text-gray-500 dark:text-gray-400">
-              No goals logged yet — the summary appears once the Goal Logger has goals in it.
-            </div>
-          ) : (
-            <>
-              <div className="select-text whitespace-pre-wrap break-words text-[17px] leading-[2]">
-                {whatsappText}
-              </div>
-              <Button className="mt-4" rounded onClick={copyWhatsApp}>
-                Copy
-              </Button>
-              <div className="mt-2 text-[13px] text-gray-500 dark:text-gray-400">
-                Touch and hold the text above to select and copy it, or tap Copy for the whole thing.
-              </div>
-            </>
-          )}
-        </Block>
-      )}
-      <Block className="!mt-1 text-[13px] text-gray-500 dark:text-gray-400">
-        A short goal-and-assist summary built from the Goal Logger — a ball for every
-        goal with its minute, a boot for every assist — ready to paste into the team chat.
       </Block>
 
       <BlockTitle>Reset</BlockTitle>
