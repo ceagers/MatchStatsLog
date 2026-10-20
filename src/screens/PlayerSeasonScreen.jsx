@@ -4,7 +4,7 @@
 
 import { useMemo, useState } from 'react';
 import {
-  Page, Navbar, NavbarBackLink, Block, BlockTitle, List,
+  Page, Navbar, NavbarBackLink, Block, BlockTitle,
   Segmented, SegmentedButton,
 } from 'konsta/react';
 import { useSettings } from '../settings.jsx';
@@ -175,7 +175,7 @@ export default function PlayerSeasonScreen({ season, playerName, matches, onBack
         ))}
       </div>
 
-      <BlockTitle>
+      <BlockTitle className="mb-2">
         Match by Match{' '}
         <span className="font-normal text-gray-500 dark:text-gray-400">
           ({rows.length} match{rows.length === 1 ? '' : 'es'})
@@ -187,61 +187,63 @@ export default function PlayerSeasonScreen({ season, playerName, matches, onBack
           No matches in this season yet.
         </Block>
       ) : (
-        <List
-          strong
-          inset
-          className="border border-black/10 dark:border-white/15"
-        >
-          <li
-            className="hairline-b flex items-center px-3 pb-1 pt-2
-                       text-[10px] font-medium uppercase tracking-wide
-                       text-gray-400 dark:text-gray-500"
-          >
-            <span className="min-w-0 flex-1">Opposition</span>
-            <span className="w-6 shrink-0 border-l border-black/10 text-center dark:border-white/15">H/A</span>
-            <span className="w-6 shrink-0 border-l border-black/10 text-center dark:border-white/15">Av</span>
-            <span className="w-6 shrink-0 border-l border-black/10 text-center dark:border-white/15">St</span>
-            <span className="w-5 shrink-0 border-l border-black/10 text-center dark:border-white/15">G</span>
-            <span className="w-5 shrink-0 border-l border-black/10 text-center dark:border-white/15">A</span>
-            <span className="w-8 shrink-0 border-l border-black/10 text-center dark:border-white/15">POTM</span>
-            <span className="w-9 shrink-0 border-l border-black/10 text-center dark:border-white/15">Time</span>
-            <span className="w-9 shrink-0 border-l border-black/10 text-right dark:border-white/15">%</span>
-          </li>
-          {rows.map((r, i) => (
-            <li key={r.id} className={i < rows.length - 1 ? 'hairline-b' : ''}>
-              <div className="flex items-center px-3 py-2 text-[13px]">
-                <span className="min-w-0 flex-1 break-words pr-1">
-                  <span className="block font-medium">
-                    {r.opposition || 'No opposition'}
-                  </span>
-                  <span className="block text-[11px] text-gray-500 dark:text-gray-400">
-                    {formatDate(r.date)}
-                  </span>
-                </span>
-                <span className="w-6 shrink-0 border-l border-black/10 text-center text-[12px] font-medium dark:border-white/15">
-                  {r.homeAway === 'Home' ? 'H' : r.homeAway === 'Away' ? 'A' : '—'}
-                </span>
-                <span className="w-6 shrink-0 border-l border-black/10 text-center text-[12px] font-semibold dark:border-white/15">
-                  {r.available ? 'Y' : r.available === null ? '—' : ''}
-                </span>
-                <span className="w-6 shrink-0 border-l border-black/10 text-center text-[12px] font-semibold dark:border-white/15">
-                  {r.started ? 'Y' : r.started === null ? '—' : ''}
-                </span>
-                <span className="w-5 shrink-0 border-l border-black/10 text-center tabular-nums dark:border-white/15">{r.goals}</span>
-                <span className="w-5 shrink-0 border-l border-black/10 text-center tabular-nums dark:border-white/15">{r.assists}</span>
-                <span className="w-8 shrink-0 border-l border-black/10 text-center text-[12px] font-semibold dark:border-white/15">
-                  {r.potm ? 'Y' : ''}
-                </span>
-                <span className="w-9 shrink-0 border-l border-black/10 text-center text-[12px] tabular-nums dark:border-white/15">
-                  {r.minutes === null ? '—' : `${r.minutes}m`}
-                </span>
-                <span className="w-9 shrink-0 border-l border-black/10 text-right font-semibold tabular-nums dark:border-white/15">
-                  {r.pct === null ? '—' : `${r.pct}%`}
-                </span>
-              </div>
-            </li>
-          ))}
-        </List>
+        <div className="mx-4 mt-3 mb-2 overflow-hidden rounded-2xl border border-black/10 bg-white dark:border-white/15 dark:bg-[#1c1c1e]">
+          <table className="w-full border-collapse text-[13px]">
+            <thead>
+              <tr className="text-[10px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                <th className="border border-black/10 px-2 py-1.5 text-center align-middle dark:border-white/15">
+                  Opposition
+                </th>
+                <th className="w-6 border border-black/10 px-1 py-1.5 text-center align-middle dark:border-white/15">H/A</th>
+                <th className="w-6 border border-black/10 px-1 py-1.5 text-center align-middle dark:border-white/15">Av</th>
+                <th className="w-6 border border-black/10 px-1 py-1.5 text-center align-middle dark:border-white/15">St</th>
+                <th className="w-5 border border-black/10 px-1 py-1.5 text-center align-middle dark:border-white/15">G</th>
+                <th className="w-5 border border-black/10 px-1 py-1.5 text-center align-middle dark:border-white/15">A</th>
+                <th className="w-8 border border-black/10 px-1 py-1.5 text-center align-middle dark:border-white/15">POTM</th>
+                <th className="w-9 border border-black/10 px-1 py-1.5 text-center align-middle dark:border-white/15">Time</th>
+                <th className="w-9 border border-black/10 px-1 py-1.5 text-center align-middle dark:border-white/15">%</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.id}>
+                  <td className="border border-black/10 px-2 py-2 text-center align-middle dark:border-white/15">
+                    <span className="block font-medium">
+                      {r.opposition || 'No opposition'}
+                    </span>
+                    <span className="block text-[11px] text-gray-500 dark:text-gray-400">
+                      {formatDate(r.date)}
+                    </span>
+                  </td>
+                  <td className="w-6 border border-black/10 px-1 py-2 text-center align-middle text-[12px] font-medium dark:border-white/15">
+                    {r.homeAway === 'Home' ? 'H' : r.homeAway === 'Away' ? 'A' : '—'}
+                  </td>
+                  <td className="w-6 border border-black/10 px-1 py-2 text-center align-middle text-[12px] font-semibold dark:border-white/15">
+                    {r.available ? 'Y' : r.available === null ? '—' : ''}
+                  </td>
+                  <td className="w-6 border border-black/10 px-1 py-2 text-center align-middle text-[12px] font-semibold dark:border-white/15">
+                    {r.started ? 'Y' : r.started === null ? '—' : ''}
+                  </td>
+                  <td className="w-5 border border-black/10 px-1 py-2 text-center align-middle tabular-nums dark:border-white/15">
+                    {r.goals}
+                  </td>
+                  <td className="w-5 border border-black/10 px-1 py-2 text-center align-middle tabular-nums dark:border-white/15">
+                    {r.assists}
+                  </td>
+                  <td className="w-8 border border-black/10 px-1 py-2 text-center align-middle text-[12px] font-semibold dark:border-white/15">
+                    {r.potm ? 'Y' : ''}
+                  </td>
+                  <td className="w-9 border border-black/10 px-1 py-2 text-center align-middle text-[12px] tabular-nums dark:border-white/15">
+                    {r.minutes === null ? '—' : `${r.minutes}m`}
+                  </td>
+                  <td className="w-9 border border-black/10 px-1 py-2 text-center align-middle font-semibold tabular-nums dark:border-white/15">
+                    {r.pct === null ? '—' : `${r.pct}%`}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
 
       <Block className="!mt-1 text-[12px] leading-relaxed text-gray-500 dark:text-gray-400">
