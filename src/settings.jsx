@@ -11,6 +11,8 @@ const KEYS = {
   font: 'settings.font.v1',
   homeImage: 'settings.homeImage.v1',
   badgeImage: 'settings.badgeImage.v1',
+  competitions: 'settings.competitions.v1',
+  matchTypes: 'settings.matchTypes.v1',
 };
 
 export const ACCENTS = [
@@ -31,6 +33,12 @@ export const FONTS = [
   { id: 'mono', name: 'Mono', stack: 'ui-monospace, "SF Mono", Menlo, monospace' },
 ];
 
+// The option lists behind the JPL/PDJAL and Type dropdowns on the Match Info
+// screen. They start with these values and are edited in the settings panel;
+// a saved list replaces the defaults entirely.
+export const DEFAULT_COMPETITIONS = ['JPL', 'PDJAL'];
+export const DEFAULT_MATCH_TYPES = ['League', 'Cup', 'League Cup', 'County Cup'];
+
 function load(key, fallback) {
   try {
     const raw = localStorage.getItem(key);
@@ -46,6 +54,24 @@ function persist(key, value) {
   } catch {
     /* too large or full — keep the choice for this session only */
   }
+}
+
+// A stored option list must be strings, trimmed, unique and non-empty. An
+// emptied list is kept as-is — the coach may genuinely want none.
+function loadList(key, fallback) {
+  const raw = load(key, null);
+  if (!Array.isArray(raw)) return [...fallback];
+  const seen = new Set();
+  const out = [];
+  raw.forEach((v) => {
+    if (typeof v !== 'string') return;
+    const t = v.trim();
+    const k = t.toLowerCase();
+    if (!t || seen.has(k)) return;
+    seen.add(k);
+    out.push(t);
+  });
+  return out;
 }
 
 // Lighten (amt > 0) or darken (amt < 0) a #rrggbb colour.
@@ -67,6 +93,12 @@ export function SettingsProvider({ children }) {
   const [font, setFont] = useState(() => load(KEYS.font, 'system'));
   const [homeImage, setHomeImage] = useState(() => load(KEYS.homeImage, null));
   const [badgeImage, setBadgeImage] = useState(() => load(KEYS.badgeImage, null));
+  const [competitions, setCompetitions] = useState(() =>
+    loadList(KEYS.competitions, DEFAULT_COMPETITIONS)
+  );
+  const [matchTypes, setMatchTypes] = useState(() =>
+    loadList(KEYS.matchTypes, DEFAULT_MATCH_TYPES)
+  );
 
   // Mirror every choice into storage.
   useEffect(() => {
@@ -75,7 +107,9 @@ export function SettingsProvider({ children }) {
     persist(KEYS.font, font);
     persist(KEYS.homeImage, homeImage);
     persist(KEYS.badgeImage, badgeImage);
-  }, [theme, accent, font, homeImage, badgeImage]);
+    persist(KEYS.competitions, competitions);
+    persist(KEYS.matchTypes, matchTypes);
+  }, [theme, accent, font, homeImage, badgeImage, competitions, matchTypes]);
 
   // Light/dark: 'system' follows the phone, the other two force it.
   useEffect(() => {
@@ -115,8 +149,10 @@ export function SettingsProvider({ children }) {
       font, setFont,
       homeImage, setHomeImage,
       badgeImage, setBadgeImage,
+      competitions, setCompetitions,
+      matchTypes, setMatchTypes,
     }),
-    [theme, accent, font, homeImage, badgeImage]
+    [theme, accent, font, homeImage, badgeImage, competitions, matchTypes]
   );
 
   return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>;

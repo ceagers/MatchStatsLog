@@ -17,8 +17,10 @@ import PlayerSeasonScreen from './PlayerSeasonScreen.jsx';
 import { Icon } from '../icons.js';
 import { haptic } from '../haptics.js';
 import { showToast } from '../toast.jsx';
+import { useSettings } from '../settings.jsx';
 
 export default function SeasonDetailScreen({ season, onNavigate, onBack }) {
+  const { competitions } = useSettings();
   const {
     seasons,
     currentSeasonId,
@@ -62,6 +64,33 @@ export default function SeasonDetailScreen({ season, onNavigate, onBack }) {
     .sort((a, b) => dateOf(b) - dateOf(a));
   const isCurrent = season.id === currentSeasonId;
   const otherSeasons = seasons.filter((s) => s.id !== season.id);
+
+  // Matches grouped by division (JPL/PDJAL), in the order the divisions are
+  // listed in Settings. Divisions in use but missing from that list follow in
+  // alphabetical order, and matches with no division sit last. Within a group
+  // the matches keep their date order, newest first.
+  const competitionOf = (record) =>
+    record.match && typeof record.match.competition === 'string'
+      ? record.match.competition.trim()
+      : '';
+  const byCompetition = new Map();
+  matches.forEach((r) => {
+    const key = competitionOf(r);
+    if (!byCompetition.has(key)) byCompetition.set(key, []);
+    byCompetition.get(key).push(r);
+  });
+  const groupOrder = [
+    ...competitions.filter((c) => byCompetition.has(c)),
+    ...[...byCompetition.keys()]
+      .filter((k) => k && !competitions.includes(k))
+      .sort((a, b) => a.localeCompare(b)),
+  ];
+  if (byCompetition.has('')) groupOrder.push('');
+  const matchGroups = groupOrder.map((key) => ({
+    key,
+    label: key || 'No Competition',
+    items: byCompetition.get(key) || [],
+  }));
 
   const open =
     savedOpenId
@@ -319,79 +348,91 @@ export default function SeasonDetailScreen({ season, onNavigate, onBack }) {
               season.
             </Block>
           ) : (
-            <List strong inset>
-              {matches.map((record, i) => {
-                const m = record.match;
-                const goals = m.goalTimes.length;
-                const timeMs = m.clock ? clockTotalMs(m.clock) : 0;
-                const title = m.opposition ? `vs ${m.opposition}` : 'No opposition';
-                const subtitle = [m.homeAway, formatDate(m.date)]
-                  .filter(Boolean)
-                  .join(' · ');
-                const textline = [
-                  m.result || 'No result',
-                  `${goals} goal${goals === 1 ? '' : 's'}`,
-                  timeMs > 0 ? formatClock(timeMs) : '',
-                ]
-                  .filter(Boolean)
-                  .join(' · ');
-                const checked = selected.includes(record.id);
+            <>
+            {matchGroups.map((g) => (
+              <div key={g.key || '__no-competition'}>
+                <BlockTitle>
+                  {g.label}{' '}
+                  <span className="font-normal text-gray-500 dark:text-gray-400">
+                    ({g.items.length})
+                  </span>
+                </BlockTitle>
+                <List strong inset>
+                  {g.items.map((record, i) => {
+                    const m = record.match;
+                    const goals = m.goalTimes.length;
+                    const timeMs = m.clock ? clockTotalMs(m.clock) : 0;
+                    const title = m.opposition ? `vs ${m.opposition}` : 'No opposition';
+                    const subtitle = [m.homeAway, formatDate(m.date)]
+                      .filter(Boolean)
+                      .join(' · ');
+                    const textline = [
+                      m.result || 'No result',
+                      `${goals} goal${goals === 1 ? '' : 's'}`,
+                      timeMs > 0 ? formatClock(timeMs) : '',
+                    ]
+                      .filter(Boolean)
+                      .join(' · ');
+                    const checked = selected.includes(record.id);
 
-                if (selectMode) {
-                  return (
-                    <li
-                      key={record.id}
-                      className={i < matches.length - 1 ? 'hairline-b' : ''}
-                    >
-                      <button
-                        type="button"
-                        onClick={() => toggleSelect(record.id)}
-                        className="flex w-full items-center gap-3 px-3 py-2.5 text-left
-                                   transition-colors active:bg-black/5 dark:active:bg-white/10"
-                      >
-                        <span
-                          className={`flex h-6 w-6 shrink-0 items-center justify-center
-                                      rounded-full border transition-colors ${
-                                        checked
-                                          ? 'border-primary bg-primary'
-                                          : 'border-gray-300 dark:border-gray-600'
-                                      }`}
+                    if (selectMode) {
+                      return (
+                        <li
+                          key={record.id}
+                          className={i < g.items.length - 1 ? 'hairline-b' : ''}
                         >
-                          {checked && <Icon name="check" size={14} className="text-white" />}
-                        </span>
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate text-[15px] font-semibold">
-                            {title}
-                          </span>
-                          <span className="block truncate text-[12px] text-gray-500 dark:text-gray-400">
-                            {[subtitle, textline].filter(Boolean).join(' · ')}
-                          </span>
-                        </span>
-                      </button>
-                    </li>
-                  );
-                }
-
-                return (
-                  <ListItem
-                    key={record.id}
-                    link
-                    onClick={() => {
-                      haptic('tick');
-                      setSavedOpenId(record.id);
-                    }}
-                    title={title}
-                    subtitle={subtitle}
-                    text={textline}
-                    after={
-                      <span className="text-[12px] text-gray-400 dark:text-gray-500">
-                        {formatSavedAt(record.savedAt)}
-                      </span>
+                          <button
+                            type="button"
+                            onClick={() => toggleSelect(record.id)}
+                            className="flex w-full items-center gap-3 px-3 py-2.5 text-left
+                                       transition-colors active:bg-black/5 dark:active:bg-white/10"
+                          >
+                            <span
+                              className={`flex h-6 w-6 shrink-0 items-center justify-center
+                                          rounded-full border transition-colors ${
+                                            checked
+                                              ? 'border-primary bg-primary'
+                                              : 'border-gray-300 dark:border-gray-600'
+                                          }`}
+                            >
+                              {checked && <Icon name="check" size={14} className="text-white" />}
+                            </span>
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate text-[15px] font-semibold">
+                                {title}
+                              </span>
+                              <span className="block truncate text-[12px] text-gray-500 dark:text-gray-400">
+                                {[subtitle, textline].filter(Boolean).join(' · ')}
+                              </span>
+                            </span>
+                          </button>
+                        </li>
+                      );
                     }
-                  />
-                );
-              })}
-            </List>
+
+                    return (
+                      <ListItem
+                        key={record.id}
+                        link
+                        onClick={() => {
+                          haptic('tick');
+                          setSavedOpenId(record.id);
+                        }}
+                        title={title}
+                        subtitle={subtitle}
+                        text={textline}
+                        after={
+                          <span className="text-[12px] text-gray-400 dark:text-gray-500">
+                            {formatSavedAt(record.savedAt)}
+                          </span>
+                        }
+                      />
+                    );
+                  })}
+                </List>
+              </div>
+            ))}
+            </>
           )}
 
           {selectMode && selected.length > 0 && (

@@ -152,6 +152,11 @@ export function makeMatch() {
   return {
     opposition: '',
     homeAway: '',
+    // Which division the match belongs to — JPL or PDJAL, say — and what
+    // kind of fixture it is: League, Cup, and so on. Both are set on the
+    // Match Info tab; their option lists are editable in Settings.
+    competition: '',
+    type: '',
     date: todayISO(),
     result: '',
     // Player of the match, picked from the squad list on the Match Info tab.
@@ -220,6 +225,9 @@ function normalise(raw) {
   return {
     opposition: typeof raw.opposition === 'string' ? raw.opposition : '',
     homeAway: typeof raw.homeAway === 'string' ? raw.homeAway : '',
+    competition:
+      typeof raw.competition === 'string' ? raw.competition : '',
+    type: typeof raw.type === 'string' ? raw.type : '',
     date: typeof raw.date === 'string' && raw.date ? raw.date.slice(0, 10) : base.date,
     result: typeof raw.result === 'string' ? raw.result : '',
     potm: typeof raw.potm === 'string' ? raw.potm : '',
@@ -370,15 +378,28 @@ function loadSaved(seasonList, defaultSeasonId) {
     if (!Array.isArray(list)) return [];
     return list
       .filter((r) => r && typeof r === 'object' && typeof r.id === 'string')
-      .map((r) => ({
-        id: r.id,
-        savedAt: typeof r.savedAt === 'string' ? r.savedAt : new Date().toISOString(),
-        seasonId:
-          typeof r.seasonId === 'string' && known.has(r.seasonId)
-            ? r.seasonId
-            : defaultSeasonId,
-        match: normalise(r.match),
-      }));
+      .map((r) => {
+        // One-off backfill for records saved before the JPL/PDJAL and Type
+        // fields existed: an 80-minute game is JPL, anything else PDJAL, and
+        // every type is League. Runs once — the migrated records are written
+        // straight back with the field set, so it never fires again.
+        const needsBackfill =
+          r.match && typeof r.match === 'object' && r.match.competition === undefined;
+        const match = normalise(r.match);
+        if (needsBackfill) {
+          match.competition = match.gameLength === 80 ? 'JPL' : 'PDJAL';
+          match.type = 'League';
+        }
+        return {
+          id: r.id,
+          savedAt: typeof r.savedAt === 'string' ? r.savedAt : new Date().toISOString(),
+          seasonId:
+            typeof r.seasonId === 'string' && known.has(r.seasonId)
+              ? r.seasonId
+              : defaultSeasonId,
+          match,
+        };
+      });
   } catch {
     return [];
   }
@@ -502,6 +523,10 @@ export function MatchProvider({ children }) {
     setResult: (result) => setMatch((m) => ({ ...m, result })),
 
     setPotm: (potm) => setMatch((m) => ({ ...m, potm })),
+
+    setCompetition: (competition) => setMatch((m) => ({ ...m, competition })),
+
+    setType: (type) => setMatch((m) => ({ ...m, type })),
 
     setGameLength: (value) =>
       setMatch((m) => {

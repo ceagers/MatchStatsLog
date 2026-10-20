@@ -3,6 +3,7 @@ import {
   Page, Navbar, Block, BlockTitle, List, ListInput, Button, Link,
 } from 'konsta/react';
 import { useMatch, formatSavedAt } from '../store.jsx';
+import { useSettings } from '../settings.jsx';
 import { showToast } from '../toast.jsx';
 import MatchSummary from '../components/MatchSummary.jsx';
 import SettingsPanel from './SettingsPanel.jsx';
@@ -12,8 +13,9 @@ import { haptic } from '../haptics.js';
 export default function MatchInfoScreen({ onNext }) {
   const {
     match, savedMatches, setOpposition, setHomeAway, setDate, setResult, setPotm,
-    setGameLength, setPeriodsUsed, saveCurrentMatch,
+    setCompetition, setType, setGameLength, setPeriodsUsed, saveCurrentMatch,
   } = useMatch();
+  const { competitions, matchTypes } = useSettings();
   const [settingsOpened, setSettingsOpened] = useState(false);
 
   const savedRecord = savedMatches.find((r) => r.id === match.savedId) || null;
@@ -56,6 +58,48 @@ export default function MatchInfoScreen({ onNext }) {
 
       <BlockTitle>Fixture</BlockTitle>
       <List strong inset>
+        <ListInput
+          label="JPL/PDJAL"
+          type="select"
+          dropdown
+          value={match.competition || ''}
+          onChange={(e) => {
+            haptic('bump');
+            setCompetition(e.target.value);
+          }}
+        >
+          <option value="">Not set</option>
+          {/* A division saved before it was removed from the settings list is
+              kept as an option, so old records never lose their value. */}
+          {match.competition && !competitions.includes(match.competition) && (
+            <option value={match.competition}>{match.competition}</option>
+          )}
+          {competitions.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </ListInput>
+        <ListInput
+          label="Type"
+          type="select"
+          dropdown
+          value={match.type || ''}
+          onChange={(e) => {
+            haptic('bump');
+            setType(e.target.value);
+          }}
+        >
+          <option value="">Not set</option>
+          {match.type && !matchTypes.includes(match.type) && (
+            <option value={match.type}>{match.type}</option>
+          )}
+          {matchTypes.map((t) => (
+            <option key={t} value={t}>
+              {t}
+            </option>
+          ))}
+        </ListInput>
         <ListInput
           label="Opposition"
           type="text"
