@@ -5,7 +5,9 @@
 
 import { useRef, useState } from 'react';
 import {
-  Page, Navbar, Block, BlockTitle, List, ListButton, Button, Dialog, DialogButton,
+  Page, Navbar, Block, BlockTitle, List, ListButton, ListItem, Button,
+  Dialog, DialogButton, Sheet, Link, Checkbox,
+  Actions, ActionsGroup, ActionsButton, ActionsLabel,
 } from 'konsta/react';
 import { useMatch, formatDate, formatSavedAt } from '../store.jsx';
 import { fullMatchCsv, fullMatchFileName, parseFullMatchCsv } from '../fullmatch.js';
@@ -26,6 +28,10 @@ export default function UtilitiesScreen() {
   const [photos, setPhotos] = useState([]);
   const [whatsappText, setWhatsappText] = useState(null);
   const [fullExportOpen, setFullExportOpen] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickedIds, setPickedIds] = useState(() => new Set());
+  const [fullExportList, setFullExportList] = useState([match]);
+  const [importChoices, setImportChoices] = useState(null);
   const [imported, setImported] = useState(null);
   const [confirmImport, setConfirmImport] = useState(false);
   const [importError, setImportError] = useState('');
@@ -113,10 +119,53 @@ export default function UtilitiesScreen() {
   };
 
   // --- Full match transfer ---------------------------------------------------
-  // One CSV carries the whole match; Import reads one back and rebuilds it.
+  // One CSV carries whole matches; Import reads one back and rebuilds them.
+
+  // Export Full Match offers the current match plus everything in history —
+  // tick any number of them and one file carries them all. The record that
+  // is this match's own saved copy is folded into the current-match option.
+  const matchOptions = [
+    {
+      key: 'current',
+      match,
+      title: match.opposition || 'Unnamed match',
+      subtitle: savedRecord
+        ? `This match · saved ${formatSavedAt(savedRecord.savedAt)}`
+        : 'This match · not saved yet',
+    },
+    ...savedMatches
+      .filter((r) => r.id !== match.savedId)
+      .map((r) => ({
+        key: r.id,
+        match: r.match,
+        title: (r.match && r.match.opposition) || 'Unnamed match',
+        subtitle: [
+          r.match && r.match.date ? formatDate(r.match.date) : 'Undated',
+          `saved ${formatSavedAt(r.savedAt)}`,
+        ].join(' · '),
+      })),
+  ];
 
   const exportFullMatch = () => {
     haptic('tick');
+    setPickedIds(new Set(['current']));
+    setPickerOpen(true);
+  };
+
+  const togglePicked = (key) =>
+    setPickedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+
+  const startFullExport = () => {
+    haptic('archived');
+    setFullExportList(
+      matchOptions.filter((o) => pickedIds.has(o.key)).map((o) => o.match)
+    );
+    setPickerOpen(false);
     setFullExportOpen(true);
   };
 
@@ -137,8 +186,12 @@ export default function UtilitiesScreen() {
         return;
       }
       setImportError('');
-      setImported(parsed.match);
-      setConfirmImport(true);
+      if (parsed.matches.length > 1) {
+        setImportChoices(parsed.matches);
+      } else {
+        setImported(parsed.matches[0]);
+        setConfirmImport(true);
+      }
     } catch {
       haptic('removed');
       setImportError('That file could not be read.');
@@ -163,7 +216,8 @@ export default function UtilitiesScreen() {
   // lift this screen above the tab bar.
   const modalOpen =
     settingsOpened || confirmReset || exportOpen || photosOpen ||
-    fullExportOpen || confirmImport;
+    fullExportOpen || confirmImport || pickerOpen ||
+    importChoices !== null;
 
   return (
     <>
@@ -300,10 +354,11 @@ export default function UtilitiesScreen() {
         </Block>
       )}
       <Block className="!mt-1 text-[13px] text-gray-500 dark:text-gray-400">
-        One spreadsheet carrying every detail of this match — fixture, squad with every
-        period, match time, goals and substitutions. Export hands it over for backup or
-        another phone; Import reads one back and rebuilds the match from scratch,
-        replacing what is on the phone now.
+        One spreadsheet carrying every detail — fixture, squad with every period, match
+        time, goals and substitutions. Export offers this match and everything in
+        history; tick any number and one file carries them all. Import reads a
+        file back and rebuilds the match from scratch, replacing what is on the
+        phone now.
       </Block>
 
       <BlockTitle>Reset</BlockTitle>
@@ -334,11 +389,77 @@ export default function UtilitiesScreen() {
       <ExportSheet
         opened={fullExportOpen}
         onClose={() => setFullExportOpen(false)}
-        match={match}
-        csv={fullExportOpen ? fullMatchCsv(match) : ''}
-        fileName={fullMatchFileName(match)}
-        description="The complete match in one spreadsheet — fixture, squad with every period, match time, goals and substitutions. Import Full Match on another phone reads this file back and rebuilds the match exactly."
+        match={fullExportList[0] || match}
+        csv={fullExportOpen ? fullMatchCsv(fullExportList) : ''}
+        fileName={fullMatchFileName(fullExportList)}
+        description={
+          fullExportList.length > 1
+            ? `${fullExportList.length} complete matches in one spreadsheet — fixture, squad with every period, match time, goals and substitutions for each. Import Full Match reads this file back and offers every match in it.`
+            : 'The complete match in one spreadsheet — fixture, squad with every period, match time, goals and substitutions. Import Full Match on another phone reads this file back and rebuilds the match exactly.'
+        }
       />
+
+      <Sheet
+        className="no-safe-areas-top pb-safe"
+        opened={pickerOpen}
+        onBackdropClick={() => setPickerOpen(false)}
+      >
+        <Navbar
+          title="Choose matches"
+          right={<Link navbar onClick={() => setPickerOpen(false)}>Cancel</Link>}
+        />
+        <List strong inset>
+          {matchOptions.map((o) => (
+            <ListItem
+              key={o.key}
+              label
+              title={o.title}
+              subtitle={o.subtitle}
+              media={
+                <Checkbox
+                  component="div"
+                  className="-my-1 k-color-brand-green"
+                  checked={pickedIds.has(o.key)}
+                  onChange={() => togglePicked(o.key)}
+                />
+              }
+            />
+          ))}
+        </List>
+        <Block>
+          <Button large rounded disabled={pickedIds.size === 0} onClick={startFullExport}>
+            Export {pickedIds.size} match{pickedIds.size === 1 ? '' : 'es'}
+          </Button>
+        </Block>
+      </Sheet>
+
+      <Actions
+        opened={importChoices !== null}
+        onBackdropClick={() => setImportChoices(null)}
+      >
+        <ActionsGroup>
+          <ActionsLabel>
+            That file carries {importChoices ? importChoices.length : 0} matches — import which?
+          </ActionsLabel>
+          {(importChoices || []).map((m, i) => (
+            <ActionsButton
+              key={i}
+              onClick={() => {
+                haptic('tick');
+                setImported(m);
+                setImportChoices(null);
+                setConfirmImport(true);
+              }}
+            >
+              {m.opposition || 'Unnamed match'}
+              {m.date ? ` — ${formatDate(m.date)}` : ''}
+            </ActionsButton>
+          ))}
+        </ActionsGroup>
+        <ActionsGroup>
+          <ActionsButton onClick={() => setImportChoices(null)}>Cancel</ActionsButton>
+        </ActionsGroup>
+      </Actions>
 
       <input
         ref={importInputRef}

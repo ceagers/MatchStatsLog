@@ -26,12 +26,17 @@ function line(values) {
   return values.map(cell).join(',');
 }
 
-export function fullMatchFileName(match) {
-  const who = ((match && match.opposition) || 'match')
+export function fullMatchFileName(matches) {
+  const list = Array.isArray(matches) ? matches.filter(Boolean) : [matches];
+  const first = list[0] || null;
+  const date = (first && first.date) || 'undated';
+  if (list.length > 1) {
+    return `MatchStatsLog-${list.length}-matches-${date}-full.csv`;
+  }
+  const who = ((first && first.opposition) || 'match')
     .trim()
     .replace(/[^A-Za-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
-  const date = (match && match.date) || 'undated';
   return `MatchStatsLog-${who || 'match'}-${date}-full.csv`;
 }
 
@@ -40,7 +45,9 @@ export function fullMatchFileName(match) {
 /// ([Match]) or a table ([Squad], [Goals], [Subs]). Period states travel as
 /// their numbers (0 unset, 1 green, 2 red) and the date as raw YYYY-MM-DD, so
 /// nothing is lost to presentation.
-export function fullMatchCsv(match) {
+/// One match as rows, without the byte-order mark — matchRows is the block
+/// builder and fullMatchCsv assembles one or more blocks into the file.
+function matchRows(match) {
   const clock = match.clock || makeClock();
   const elapsed = Math.round(sessionMs(clock));
   const timed = Math.round(totalTimedMs(clock));
@@ -97,7 +104,16 @@ export function fullMatchCsv(match) {
     .sort((a, b) => a.minute - b.minute)
     .forEach((s) => rows.push(line([s.minute, s.on || '', s.off || '', s.notes || ''])));
 
-  return `${BOM}${rows.join('\r\n')}\r\n`;
+  return rows;
+}
+
+/// One file can carry many matches: every match is a complete block — header
+/// line, [Match], [Squad], [Goals], [Subs] — and the parser splits on the
+/// header lines when it reads the file back.
+export function fullMatchCsv(matches) {
+  const list = Array.isArray(matches) ? matches : [matches];
+  const blocks = list.filter(Boolean).map(matchRows);
+  return `${BOM}${blocks.map((b) => b.join('\r\n')).join('\r\n\r\n')}\r\n`;
 }
 
 // --- The way back -------------------------------------------------------------
@@ -150,18 +166,9 @@ const num = (value, fallback = 0) => {
 
 const str = (value) => (typeof value === 'string' ? value.trim() : '');
 
-/// Parse a full-match export back into a match. Returns { ok: true, match }
-/// or { ok: false, error } — never throws, whatever the file holds.
-export function parseFullMatchCsv(text) {
-  const fail = (error) => ({ ok: false, error });
-  if (typeof text !== 'string' || !text.trim()) return fail('That file could not be read.');
-
-  const rows = parseCsvRows(text.replace(/^\uFEFF/, ''));
-  const first = (rows[0] || []).join(',');
-  if (!first.includes('MatchStatsLog') || !first.includes('Full Match Export')) {
-    return fail('That file is not a MatchStatsLog full match export.');
-  }
-
+/// Parse one block — the rows between two header lines — back into a match.
+/// Returns the match, or null when the block is not a complete one.
+function parseMatchBlock(rows) {
   let section = '';
   const kv = {};
   const squad = [];
@@ -172,7 +179,7 @@ export function parseFullMatchCsv(text) {
   let sawGoalsHeader = false;
   let sawSubsHeader = false;
 
-  rows.slice(1).forEach((r) => {
+  rows.forEach((r) => {
     const c0 = str(r[0]);
     if (c0.startsWith('[') && c0.endsWith(']')) {
       section = c0.slice(1, -1).toLowerCase();
@@ -207,9 +214,7 @@ export function parseFullMatchCsv(text) {
     }
   });
 
-  if (!sawMatch || !sawSquadHeader) {
-    return fail('That file is missing the match or squad section.');
-  }
+  if (!sawMatch || !sawSquadHeader) return null;
 
   const base = makeMatch();
   const isoDate = /^\d{4}-\d{2}-\d{2}$/.test(kv['Date'] || '') ? kv['Date'] : '';
@@ -263,6 +268,39 @@ export function parseFullMatchCsv(text) {
     clock,
   };
 
-  if (!match.players.length) return fail('That file carries no squad.');
-  return { ok: true, match };
+  if (!match.players.length) return null;
+  return match;
+}
+
+/// Parse a full-match export back into matches. One file may carry several —
+/// each starts with its own header line. Returns { ok: true, matches } or
+/// { ok: false, error } — never throws, whatever the file holds.
+export function parseFullMatchCsv(text) {
+  const fail = (error) => ({ ok: false, error });
+  if (typeof text !== 'string' || !text.trim()) return fail('That file could not be read.');
+
+  const rows = parseCsvRows(text.replace(/^\uFEFF/, ''));
+  const first = (rows[0] || []).join(',');
+  if (!first.includes('MatchStatsLog') || !first.includes('Full Match Export')) {
+    return fail('That file is not a MatchStatsLog full match export.');
+  }
+
+  // Split the file into per-match blocks at the header lines.
+  const blocks = [];
+  let current = null;
+  rows.forEach((r) => {
+    const joined = r.join(',');
+    if (joined.includes('MatchStatsLog') && joined.includes('Full Match Export')) {
+      current = [];
+      blocks.push(current);
+      return;
+    }
+    if (current) current.push(r);
+  });
+
+  const matches = blocks.map(parseMatchBlock).filter(Boolean);
+  if (!matches.length) {
+    return fail('That file is missing the match or squad section.');
+  }
+  return { ok: true, matches };
 }
