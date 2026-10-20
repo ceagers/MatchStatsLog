@@ -10,7 +10,6 @@ import {
   computeSeasonStats, computePlayerMinutes, clockTotalMs, formatDate,
   PERIOD_UNSET, PERIOD_GREEN,
 } from '../store.jsx';
-import { Icon } from '../icons.js';
 
 const BLANK_TOTALS = {
   played: 0, starts: 0, notAvailable: 0, goals: 0, assists: 0,
@@ -122,23 +121,25 @@ export default function PlayerSeasonScreen({ season, playerName, matches, onBack
         </Block>
       ) : (
         <List strong inset>
-          <li className="flex items-center gap-1 px-3 pb-1 pt-2
-                         text-[10px] font-medium uppercase tracking-wide
-                         text-gray-400 dark:text-gray-500">
+          <li
+            className="flex items-center px-3 pb-1 pt-2
+                       text-[10px] font-medium uppercase tracking-wide
+                       text-gray-400 dark:text-gray-500"
+          >
             <span className="min-w-0 flex-1">Opposition</span>
-            <span className="w-9 shrink-0 text-center">H/A</span>
-            <span className="w-10 shrink-0 text-center">Avail</span>
-            <span className="w-10 shrink-0 text-center">Start</span>
-            <span className="w-6 shrink-0 text-center">G</span>
-            <span className="w-6 shrink-0 text-center">A</span>
-            <span className="w-10 shrink-0 text-center">POTM</span>
-            <span className="w-10 shrink-0 text-center">Time</span>
-            <span className="w-9 shrink-0 text-center">%</span>
+            <span className="w-6 shrink-0 text-center">H/A</span>
+            <span className="w-6 shrink-0 text-center">Av</span>
+            <span className="w-6 shrink-0 text-center">St</span>
+            <span className="w-5 shrink-0 text-center">G</span>
+            <span className="w-5 shrink-0 text-center">A</span>
+            <span className="w-8 shrink-0 text-center">POTM</span>
+            <span className="w-9 shrink-0 text-center">Time</span>
+            <span className="w-9 shrink-0 text-right">%</span>
           </li>
           {rows.map((r, i) => (
             <li key={r.id} className={i < rows.length - 1 ? 'hairline-b' : ''}>
-              <div className="flex items-center gap-1 px-3 py-2 text-[13px]">
-                <span className="min-w-0 flex-1">
+              <div className="flex items-center px-3 py-2 text-[13px]">
+                <span className="min-w-0 flex-1 pr-1">
                   <span className="block truncate font-medium">
                     {r.opposition || 'No opposition'}
                   </span>
@@ -146,25 +147,25 @@ export default function PlayerSeasonScreen({ season, playerName, matches, onBack
                     {formatDate(r.date)}
                   </span>
                 </span>
-                <span className="w-9 shrink-0 text-center text-[12px]">
-                  {r.homeAway || '—'}
+                <span className="w-6 shrink-0 text-center text-[12px] font-medium">
+                  {r.homeAway === 'Home' ? 'H' : r.homeAway === 'Away' ? 'A' : '—'}
                 </span>
-                <span className="w-10 shrink-0 text-center text-[12px]">
-                  {r.available === null ? '—' : r.available ? 'Yes' : 'No'}
+                <span className="w-6 shrink-0 text-center text-[12px] font-semibold text-primary">
+                  {r.available ? 'Y' : r.available === null ? '—' : ''}
                 </span>
-                <span className="w-10 shrink-0 text-center text-[12px]">
-                  {r.started === null ? '—' : r.started ? 'Yes' : 'No'}
+                <span className="w-6 shrink-0 text-center text-[12px] font-semibold text-primary">
+                  {r.started ? 'Y' : r.started === null ? '—' : ''}
                 </span>
-                <span className="w-6 shrink-0 text-center tabular-nums">{r.goals}</span>
-                <span className="w-6 shrink-0 text-center tabular-nums">{r.assists}</span>
-                <span className="w-10 shrink-0 text-center">
-                  {r.potm && <Icon name="star" size={14} className="text-primary" />}
+                <span className="w-5 shrink-0 text-center tabular-nums">{r.goals}</span>
+                <span className="w-5 shrink-0 text-center tabular-nums">{r.assists}</span>
+                <span className="w-8 shrink-0 text-center text-[12px] font-semibold text-primary">
+                  {r.potm ? 'Y' : ''}
                 </span>
-                <span className="w-10 shrink-0 text-center tabular-nums">
+                <span className="w-9 shrink-0 text-center text-[12px] tabular-nums">
                   {r.minutes === null ? '—' : `${r.minutes}m`}
                 </span>
                 <span
-                  className={`w-9 shrink-0 text-center font-semibold tabular-nums ${
+                  className={`w-9 shrink-0 text-right font-semibold tabular-nums ${
                     r.pct === null ? '' : 'text-primary'
                   }`}
                 >
@@ -177,14 +178,14 @@ export default function PlayerSeasonScreen({ season, playerName, matches, onBack
       )}
 
       <Block className="!mt-1 text-[12px] leading-relaxed text-gray-500 dark:text-gray-400">
-        Every match in {season.name}, newest first. Avail shows whether the
-        player was on the team sheet (green or red Period 1); Start is a green
-        Period 1. Time Played comes from the substitution log when the clock
-        ran, otherwise from green grid periods against the game length. The
-        percentage is minutes on the pitch against that match's length, counted
-        for matches they were available for. A dash means the match carries no
-        data for that column — the squad grid was never marked, or there is no
-        match time to measure against.
+        Every match in {season.name}, newest first. H/A is home or away; Av is
+        Y when the player was on the team sheet; St is Y when they started
+        (green Period 1); POTM is Y for a player-of-the-match award. Time comes
+        from the substitution log when the clock ran, otherwise from green grid
+        periods against the game length; % is minutes on the pitch against that
+        match's length, counted for matches they were available for. A dash
+        means the match carries no data for that column — the squad grid was
+        never marked, or there is no match time to measure against.
       </Block>
     </Page>
   );
