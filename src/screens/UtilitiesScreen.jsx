@@ -400,7 +400,7 @@ export default function UtilitiesScreen() {
       />
 
       <Sheet
-        className="no-safe-areas-top pb-safe"
+        className="no-safe-areas-top pb-safe flex flex-col max-h-[85dvh]"
         opened={pickerOpen}
         onBackdropClick={() => setPickerOpen(false)}
       >
@@ -408,25 +408,27 @@ export default function UtilitiesScreen() {
           title="Choose matches"
           right={<Link navbar onClick={() => setPickerOpen(false)}>Cancel</Link>}
         />
-        <List strong inset>
-          {matchOptions.map((o) => (
-            <ListItem
-              key={o.key}
-              label
-              title={o.title}
-              subtitle={o.subtitle}
-              media={
-                <Checkbox
-                  component="div"
-                  className="-my-1 k-color-brand-green"
-                  checked={pickedIds.has(o.key)}
-                  onChange={() => togglePicked(o.key)}
-                />
-              }
-            />
-          ))}
-        </List>
-        <Block>
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+          <List strong inset>
+            {matchOptions.map((o) => (
+              <ListItem
+                key={o.key}
+                label
+                title={o.title}
+                subtitle={o.subtitle}
+                media={
+                  <Checkbox
+                    component="div"
+                    className="-my-1 k-color-brand-green"
+                    checked={pickedIds.has(o.key)}
+                    onChange={() => togglePicked(o.key)}
+                  />
+                }
+              />
+            ))}
+          </List>
+        </div>
+        <Block className="shrink-0">
           <Button large rounded disabled={pickedIds.size === 0} onClick={startFullExport}>
             Export {pickedIds.size} match{pickedIds.size === 1 ? '' : 'es'}
           </Button>
