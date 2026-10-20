@@ -2,10 +2,13 @@
 // season as a row — whether they were available, whether they started, what
 // they contributed, and how long they spent on the pitch.
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Page, Navbar, NavbarBackLink, Block, BlockTitle, List,
+  Segmented, SegmentedButton,
 } from 'konsta/react';
+import { useSettings } from '../settings.jsx';
+import { haptic } from '../haptics.js';
 import {
   computeSeasonStats, computePlayerMinutes, clockTotalMs, formatDate,
   PERIOD_UNSET, PERIOD_GREEN,
@@ -17,8 +20,22 @@ const BLANK_TOTALS = {
 };
 
 export default function PlayerSeasonScreen({ season, playerName, matches, onBack }) {
+  const { competitions } = useSettings();
+  // Division filter: '__all' counts every game, a value counts only those games.
+  // All is the default.
+  const [compFilter, setCompFilter] = useState('__all');
+  const fullRecs = Array.isArray(matches) ? matches : [];
   const { rows, me } = useMemo(() => {
-    const recs = Array.isArray(matches) ? matches : [];
+    const recs =
+      compFilter === '__all'
+        ? fullRecs
+        : fullRecs.filter((record) => {
+            const m = record.match || {};
+            return (
+              typeof m.competition === 'string' &&
+              m.competition.trim() === compFilter
+            );
+          });
 
     const gridUsed = (m) =>
       (Array.isArray(m.players) ? m.players : []).some(
@@ -67,7 +84,25 @@ export default function PlayerSeasonScreen({ season, playerName, matches, onBack
     const totals =
       stats.players.find((p) => p.name === playerName) || BLANK_TOTALS;
     return { rows: matchRows, me: totals };
-  }, [matches, playerName]);
+  }, [matches, playerName, compFilter]);
+
+  // The division options the season's matches actually use, ordered as the
+  // divisions are listed in Settings; values missing from that list follow
+  // alphabetically. Only offered when at least one game carries a division.
+  const compOptions = useMemo(() => {
+    const present = new Set();
+    fullRecs.forEach((record) => {
+      const m = record.match || {};
+      const v = typeof m.competition === 'string' ? m.competition.trim() : '';
+      if (v) present.add(v);
+    });
+    return [
+      ...competitions.filter((c) => present.has(c)),
+      ...[...present]
+        .filter((v) => !competitions.includes(v))
+        .sort((a, b) => a.localeCompare(b)),
+    ];
+  }, [matches, competitions]);
 
   const tiles = [
     { label: 'Games', value: me.played },
@@ -93,6 +128,38 @@ export default function PlayerSeasonScreen({ season, playerName, matches, onBack
       <Block className="!mb-2 text-[13px] text-gray-500 dark:text-gray-400">
         {season.name}
       </Block>
+
+      {compOptions.length > 0 && (
+        <div className="mx-4 mb-3">
+          <Segmented strong rounded>
+            <SegmentedButton
+              strong
+              rounded
+              active={compFilter === '__all'}
+              onClick={() => {
+                haptic('tick');
+                setCompFilter('__all');
+              }}
+            >
+              All
+            </SegmentedButton>
+            {compOptions.map((c) => (
+              <SegmentedButton
+                key={c}
+                strong
+                rounded
+                active={compFilter === c}
+                onClick={() => {
+                  haptic('tick');
+                  setCompFilter(c);
+                }}
+              >
+                {c}
+              </SegmentedButton>
+            ))}
+          </Segmented>
+        </div>
+      )}
 
       <div className="mx-4 mb-2 grid grid-cols-4 gap-2">
         {tiles.map((t) => (
@@ -182,7 +249,8 @@ export default function PlayerSeasonScreen({ season, playerName, matches, onBack
       )}
 
       <Block className="!mt-1 text-[12px] leading-relaxed text-gray-500 dark:text-gray-400">
-        Every match in {season.name}, newest first. H/A is home or away; Av is
+        Stats cover the division picked at the top — All counts every game in{' '}
+        {season.name}, newest first. H/A is home or away; Av is
         Y when the player was on the team sheet; St is Y when they started
         (green Period 1); POTM is Y for a player-of-the-match award. Time comes
         from the substitution log when the clock ran, otherwise from green grid

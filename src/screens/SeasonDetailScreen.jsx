@@ -566,8 +566,43 @@ export default function SeasonDetailScreen({ season, onNavigate, onBack }) {
 // Tap a column title to sort by it; tap again to flip the order. Tap a
 // player's row to open their own match-by-match screen.
 function PlayerTotals({ matches, onOpenPlayer }) {
-  const { players, matchesCounted } = computeSeasonStats(matches);
+  const { competitions } = useSettings();
+  // Division filter: '__all' counts every game, a value counts only those
+  // games. All is the default.
+  const [compFilter, setCompFilter] = useState('__all');
   const [sort, setSort] = useState(null); // { key, dir: 'asc' | 'desc' } | null
+
+  // The division options the season's matches actually use, ordered as the
+  // divisions are listed in Settings; values missing from that list follow
+  // alphabetically. Only offered when at least one game carries a division.
+  const compOptions = (() => {
+    const present = new Set();
+    matches.forEach((r) => {
+      const v =
+        r.match && typeof r.match.competition === 'string'
+          ? r.match.competition.trim()
+          : '';
+      if (v) present.add(v);
+    });
+    return [
+      ...competitions.filter((c) => present.has(c)),
+      ...[...present]
+        .filter((v) => !competitions.includes(v))
+        .sort((a, b) => a.localeCompare(b)),
+    ];
+  })();
+
+  const filtered =
+    compFilter === '__all'
+      ? matches
+      : matches.filter(
+          (r) =>
+            r.match &&
+            typeof r.match.competition === 'string' &&
+            r.match.competition.trim() === compFilter
+        );
+
+  const { players, matchesCounted } = computeSeasonStats(filtered);
 
   const cols = [
     { key: 'name', label: 'Player', w: 'min-w-0 flex-1' },
@@ -618,6 +653,37 @@ function PlayerTotals({ matches, onOpenPlayer }) {
 
   return (
     <>
+      {compOptions.length > 0 && (
+        <div className="mx-4 mb-2">
+          <Segmented strong rounded>
+            <SegmentedButton
+              strong
+              rounded
+              active={compFilter === '__all'}
+              onClick={() => {
+                haptic('tick');
+                setCompFilter('__all');
+              }}
+            >
+              All
+            </SegmentedButton>
+            {compOptions.map((c) => (
+              <SegmentedButton
+                key={c}
+                strong
+                rounded
+                active={compFilter === c}
+                onClick={() => {
+                  haptic('tick');
+                  setCompFilter(c);
+                }}
+              >
+                {c}
+              </SegmentedButton>
+            ))}
+          </Segmented>
+        </div>
+      )}
       <BlockTitle>
         Squad Totals{' '}
         <span className="font-normal text-gray-500 dark:text-gray-400">
@@ -693,7 +759,8 @@ function PlayerTotals({ matches, onOpenPlayer }) {
         ))}
       </List>
       <Block className="!mt-1 text-[12px] leading-relaxed text-gray-500 dark:text-gray-400">
-        Counted from the saved matches in this season. Period 1 green is a
+        Stats cover the division picked at the top — All counts every game in
+        the season. Counted from the saved matches in this season. Period 1 green is a
         start, red is the bench, no colour is not available — GP counts green or
         red. Percentage played is minutes on the pitch against the match time of
         only the games the player was available for (started or benched), not
