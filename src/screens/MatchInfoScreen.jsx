@@ -108,13 +108,31 @@ export default function MatchInfoScreen({ onNext }) {
         />
         <ListInput
           label="POTM"
-          type="text"
-          placeholder="Player of the match"
-          value={match.potm}
-          onInput={(e) => setPotm(e.target.value)}
-          clearButton
-          onClear={() => setPotm('')}
-        />
+          type="select"
+          dropdown
+          value={match.potm || ''}
+          onChange={(e) => {
+            haptic('bump');
+            setPotm(e.target.value);
+          }}
+          footer={
+            match.players.length === 0
+              ? 'Populate the squad on the Players tab to pick the winner from the list.'
+              : undefined
+          }
+        >
+          <option value="">None</option>
+          {/* A previously typed POTM that isn't in the squad list is kept as an
+              option, so old records never lose their saved value. */}
+          {match.potm && !match.players.some((p) => p.name === match.potm) && (
+            <option value={match.potm}>{match.potm}</option>
+          )}
+          {match.players.map((p) => (
+            <option key={p.name} value={p.name}>
+              {p.name}
+            </option>
+          ))}
+        </ListInput>
       </List>
 
       <MatchSummary match={match} onPeriodsUsed={setPeriodsUsed} />

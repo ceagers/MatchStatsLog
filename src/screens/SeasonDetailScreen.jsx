@@ -518,11 +518,13 @@ function PlayerTotals({ matches }) {
           <span className="min-w-0 flex-1 text-[11px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
             Player
           </span>
-          {['GP', 'St', 'NA', 'G', 'A', '%'].map((h) => (
+          {['GP', 'St', 'NA', 'G', 'A', 'POTM', '%'].map((h) => (
             <span
               key={h}
-              className="w-8 shrink-0 text-center text-[11px] font-medium uppercase
-                         tracking-wide text-gray-400 dark:text-gray-500"
+              className={`${
+                h === 'POTM' ? 'w-10' : 'w-8'
+              } shrink-0 text-center text-[11px] font-medium uppercase
+                         tracking-wide text-gray-400 dark:text-gray-500`}
             >
               {h}
             </span>
@@ -545,6 +547,7 @@ function PlayerTotals({ matches }) {
             </span>
             <span className="w-8 text-center text-[14px] tabular-nums">{p.goals}</span>
             <span className="w-8 text-center text-[14px] tabular-nums">{p.assists}</span>
+            <span className="w-10 text-center text-[14px] tabular-nums">{p.potm}</span>
             <span className="w-8 text-center text-[14px] font-semibold tabular-nums text-primary">
               {p.percentage === null ? '—' : `${p.percentage}%`}
             </span>
@@ -555,8 +558,9 @@ function PlayerTotals({ matches }) {
         Counted from the saved matches in this season. Period 1 green is a
         start, red is the bench, no colour is not available — GP counts green or
         red. Percentage played is minutes on the pitch against total match
-        time. A match with an unmarked squad grid carries no appearance data
-        and is left out of these counts; goals logged in it still count.
+        time. POTM counts player-of-the-match awards. A match with an unmarked
+        squad grid carries no appearance data and is left out of those counts;
+        goals and awards logged in it still count.
       </Block>
     </>
   );

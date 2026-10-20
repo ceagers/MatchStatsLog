@@ -154,7 +154,7 @@ export function makeMatch() {
     homeAway: '',
     date: todayISO(),
     result: '',
-    // Player of the match, free text.
+    // Player of the match, picked from the squad list on the Match Info tab.
     potm: '',
     // Planned length of the game in minutes — 60 or 80, say. 0 until it is
     // set on the Match Info tab; used as the yardstick for minutes played.
@@ -792,6 +792,7 @@ export function computeSeasonStats(records) {
     notAvailable: 0,
     goals: 0,
     assists: 0,
+    potm: 0,
     minutes: 0,
     teamMinutes: 0,
   });
@@ -821,6 +822,12 @@ export function computeSeasonStats(records) {
       t.goals += Number.isFinite(p.goals) ? p.goals : 0;
       t.assists += Number.isFinite(p.assists) ? p.assists : 0;
     });
+
+    // Player-of-the-match awards count for every match in the season — even
+    // one whose squad grid was never marked. A POTM name that doesn't sit in
+    // the squad list still keeps its award (and gains its own row).
+    const potmName = typeof match.potm === 'string' ? match.potm.trim() : '';
+    if (potmName) ensure(potmName).potm += 1;
 
     const gridUsed = players.some(
       (p) => Array.isArray(p.periods) && p.periods.some((s) => s !== PERIOD_UNSET)
