@@ -787,6 +787,12 @@ export function MatchProvider({ children }) {
       if (!record) return;
       setMatch({ ...normalise(record.match), savedId: id });
     },
+
+    // A full round trip of the full-match export: everything — fixture, squad,
+    // clock, goals and substitutions — is replaced by the imported match,
+    // which comes in unsaved so saving files it as a new record.
+    importMatch: (incoming) =>
+      setMatch(() => ({ ...normalise(incoming), savedId: null })),
   };
 
   return <MatchContext.Provider value={value}>{children}</MatchContext.Provider>;

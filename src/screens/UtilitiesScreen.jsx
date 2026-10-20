@@ -3,11 +3,12 @@
 // were moved here from the Match Info screen and the match summary so the
 // screens a coach works through on the day stay focused on the match itself.
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   Page, Navbar, Block, BlockTitle, List, ListButton, Button, Dialog, DialogButton,
 } from 'konsta/react';
-import { useMatch, formatSavedAt } from '../store.jsx';
+import { useMatch, formatDate, formatSavedAt } from '../store.jsx';
+import { fullMatchCsv, fullMatchFileName, parseFullMatchCsv } from '../fullmatch.js';
 import { showToast } from '../toast.jsx';
 import ExportSheet from '../components/ExportSheet.jsx';
 import PhotosSheet from '../components/PhotosSheet.jsx';
@@ -17,13 +18,18 @@ import { Icon } from '../icons.js';
 import { haptic } from '../haptics.js';
 
 export default function UtilitiesScreen() {
-  const { match, savedMatches, resetMatch, saveCurrentMatch } = useMatch();
+  const { match, savedMatches, resetMatch, saveCurrentMatch, importMatch } = useMatch();
   const [confirmReset, setConfirmReset] = useState(false);
   const [settingsOpened, setSettingsOpened] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [photosOpen, setPhotosOpen] = useState(false);
   const [photos, setPhotos] = useState([]);
   const [whatsappText, setWhatsappText] = useState(null);
+  const [fullExportOpen, setFullExportOpen] = useState(false);
+  const [imported, setImported] = useState(null);
+  const [confirmImport, setConfirmImport] = useState(false);
+  const [importError, setImportError] = useState('');
+  const importInputRef = useRef(null);
 
   const savedRecord = savedMatches.find((r) => r.id === match.savedId) || null;
 
@@ -106,9 +112,58 @@ export default function UtilitiesScreen() {
     setPhotosOpen(true);
   };
 
+  // --- Full match transfer ---------------------------------------------------
+  // One CSV carries the whole match; Import reads one back and rebuilds it.
+
+  const exportFullMatch = () => {
+    haptic('tick');
+    setFullExportOpen(true);
+  };
+
+  const pickImportFile = () => {
+    haptic('tick');
+    if (importInputRef.current) importInputRef.current.click();
+  };
+
+  const onImportFile = async (event) => {
+    const file = event.target.files && event.target.files[0];
+    event.target.value = ''; // so picking the same file again still fires
+    if (!file) return;
+    try {
+      const parsed = parseFullMatchCsv(await file.text());
+      if (!parsed.ok) {
+        haptic('removed');
+        setImportError(parsed.error);
+        return;
+      }
+      setImportError('');
+      setImported(parsed.match);
+      setConfirmImport(true);
+    } catch {
+      haptic('removed');
+      setImportError('That file could not be read.');
+    }
+  };
+
+  const describeImported = (m) => {
+    if (!m) return 'the imported match';
+    const who = m.opposition || 'an unnamed match';
+    return m.date ? `${who}, ${formatDate(m.date)}` : who;
+  };
+
+  const confirmImportMatch = () => {
+    haptic('archived');
+    importMatch(imported);
+    setConfirmImport(false);
+    setImported(null);
+    showToast('Match imported');
+  };
+
   // The settings panel, export sheet, reset confirmation and photos sheet
   // lift this screen above the tab bar.
-  const modalOpen = settingsOpened || confirmReset || exportOpen || photosOpen;
+  const modalOpen =
+    settingsOpened || confirmReset || exportOpen || photosOpen ||
+    fullExportOpen || confirmImport;
 
   return (
     <>
@@ -189,6 +244,33 @@ export default function UtilitiesScreen() {
         history, open it as the current match first.
       </Block>
 
+      <BlockTitle>Full Match Transfer</BlockTitle>
+      <List strong inset>
+        <ListButton onClick={exportFullMatch}>
+          <span className="inline-flex items-center gap-2">
+            <Icon name="file-output" size={20} />
+            Export Full Match
+          </span>
+        </ListButton>
+        <ListButton onClick={pickImportFile}>
+          <span className="inline-flex items-center gap-2">
+            <Icon name="file-input" size={20} />
+            Import Full Match
+          </span>
+        </ListButton>
+      </List>
+      {importError !== '' && (
+        <Block className="!mt-1 !mb-0 text-[13px] k-color-brand-red">
+          {importError}
+        </Block>
+      )}
+      <Block className="!mt-1 text-[13px] text-gray-500 dark:text-gray-400">
+        One spreadsheet carrying every detail of this match — fixture, squad with every
+        period, match time, goals and substitutions. Export hands it over for backup or
+        another phone; Import reads one back and rebuilds the match from scratch,
+        replacing what is on the phone now.
+      </Block>
+
       <BlockTitle>WhatsApp</BlockTitle>
       <List strong inset>
         <ListButton onClick={openWhatsApp}>
@@ -247,6 +329,38 @@ export default function UtilitiesScreen() {
         opened={exportOpen}
         onClose={() => setExportOpen(false)}
         match={match}
+      />
+
+      <ExportSheet
+        opened={fullExportOpen}
+        onClose={() => setFullExportOpen(false)}
+        match={match}
+        csv={fullExportOpen ? fullMatchCsv(match) : ''}
+        fileName={fullMatchFileName(match)}
+        description="The complete match in one spreadsheet — fixture, squad with every period, match time, goals and substitutions. Import Full Match on another phone reads this file back and rebuilds the match exactly."
+      />
+
+      <input
+        ref={importInputRef}
+        type="file"
+        accept=".csv,text/csv,text/comma-separated-values"
+        className="hidden"
+        onChange={onImportFile}
+      />
+
+      <Dialog
+        opened={confirmImport}
+        onBackdropClick={() => setConfirmImport(false)}
+        title="Import this match?"
+        content={`Replaces everything on the phone now with ${describeImported(imported)} — fixture, squad, clock, goals and substitutions. Save the current match first if you want to keep it.`}
+        buttons={
+          <>
+            <DialogButton onClick={() => setConfirmImport(false)}>Cancel</DialogButton>
+            <DialogButton strong onClick={confirmImportMatch}>
+              Import
+            </DialogButton>
+          </>
+        }
       />
 
       <Dialog
