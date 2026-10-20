@@ -120,52 +120,56 @@ export default function PlayerSeasonScreen({ season, playerName, matches, onBack
           No matches in this season yet.
         </Block>
       ) : (
-        <List strong inset>
+        <List
+          strong
+          inset
+          className="border border-black/10 dark:border-white/15"
+        >
           <li
-            className="flex items-center px-3 pb-1 pt-2
+            className="hairline-b flex items-center px-3 pb-1 pt-2
                        text-[10px] font-medium uppercase tracking-wide
                        text-gray-400 dark:text-gray-500"
           >
             <span className="min-w-0 flex-1">Opposition</span>
-            <span className="w-6 shrink-0 text-center">H/A</span>
-            <span className="w-6 shrink-0 text-center">Av</span>
-            <span className="w-6 shrink-0 text-center">St</span>
-            <span className="w-5 shrink-0 text-center">G</span>
-            <span className="w-5 shrink-0 text-center">A</span>
-            <span className="w-8 shrink-0 text-center">POTM</span>
-            <span className="w-9 shrink-0 text-center">Time</span>
-            <span className="w-9 shrink-0 text-right">%</span>
+            <span className="w-6 shrink-0 border-l border-black/10 text-center dark:border-white/15">H/A</span>
+            <span className="w-6 shrink-0 border-l border-black/10 text-center dark:border-white/15">Av</span>
+            <span className="w-6 shrink-0 border-l border-black/10 text-center dark:border-white/15">St</span>
+            <span className="w-5 shrink-0 border-l border-black/10 text-center dark:border-white/15">G</span>
+            <span className="w-5 shrink-0 border-l border-black/10 text-center dark:border-white/15">A</span>
+            <span className="w-8 shrink-0 border-l border-black/10 text-center dark:border-white/15">POTM</span>
+            <span className="w-9 shrink-0 border-l border-black/10 text-center dark:border-white/15">Time</span>
+            <span className="w-9 shrink-0 border-l border-black/10 text-right dark:border-white/15">%</span>
           </li>
           {rows.map((r, i) => (
             <li key={r.id} className={i < rows.length - 1 ? 'hairline-b' : ''}>
               <div className="flex items-center px-3 py-2 text-[13px]">
-                <span className="min-w-0 flex-1 pr-1">
-                  <span className="block truncate font-medium">
+                <span className="min-w-0 flex-1 break-words pr-1">
+                  <span className="block font-medium">
                     {r.opposition || 'No opposition'}
                   </span>
-                  <span className="block truncate text-[11px] text-gray-500 dark:text-gray-400">
+                  <span className="block text-[11px] text-gray-500 dark:text-gray-400">
                     {formatDate(r.date)}
                   </span>
                 </span>
-                <span className="w-6 shrink-0 text-center text-[12px] font-medium">
+                <span className="w-6 shrink-0 border-l border-black/10 text-center text-[12px] font-medium dark:border-white/15">
                   {r.homeAway === 'Home' ? 'H' : r.homeAway === 'Away' ? 'A' : '—'}
                 </span>
-                <span className="w-6 shrink-0 text-center text-[12px] font-semibold text-primary">
+                <span className="w-6 shrink-0 border-l border-black/10 text-center text-[12px] font-semibold text-primary dark:border-white/15">
                   {r.available ? 'Y' : r.available === null ? '—' : ''}
                 </span>
-                <span className="w-6 shrink-0 text-center text-[12px] font-semibold text-primary">
+                <span className="w-6 shrink-0 border-l border-black/10 text-center text-[12px] font-semibold text-primary dark:border-white/15">
                   {r.started ? 'Y' : r.started === null ? '—' : ''}
                 </span>
-                <span className="w-5 shrink-0 text-center tabular-nums">{r.goals}</span>
-                <span className="w-5 shrink-0 text-center tabular-nums">{r.assists}</span>
-                <span className="w-8 shrink-0 text-center text-[12px] font-semibold text-primary">
+                <span className="w-5 shrink-0 border-l border-black/10 text-center tabular-nums dark:border-white/15">{r.goals}</span>
+                <span className="w-5 shrink-0 border-l border-black/10 text-center tabular-nums dark:border-white/15">{r.assists}</span>
+                <span className="w-8 shrink-0 border-l border-black/10 text-center text-[12px] font-semibold text-primary dark:border-white/15">
                   {r.potm ? 'Y' : ''}
                 </span>
-                <span className="w-9 shrink-0 text-center text-[12px] tabular-nums">
+                <span className="w-9 shrink-0 border-l border-black/10 text-center text-[12px] tabular-nums dark:border-white/15">
                   {r.minutes === null ? '—' : `${r.minutes}m`}
                 </span>
                 <span
-                  className={`w-9 shrink-0 text-right font-semibold tabular-nums ${
+                  className={`w-9 shrink-0 border-l border-black/10 text-right font-semibold tabular-nums dark:border-white/15 ${
                     r.pct === null ? '' : 'text-primary'
                   }`}
                 >
