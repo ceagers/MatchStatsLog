@@ -104,7 +104,7 @@ function ellipsize(ctx, text, max) {
 }
 
 const captionFor = (match) =>
-  ['MatchStatsLog', match.opposition || null, formatDate(match.date)]
+  ['MatchStatsLog', match.competition || null, match.opposition || null, formatDate(match.date)]
     .filter(Boolean)
     .join('  ·  ');
 
@@ -116,6 +116,7 @@ function fixturePhoto(match) {
   const hasPotm = Boolean(match.potm);
 
   let inner = 16 + 28 + 2 + 20;
+  inner += 22 + 22; // the JPL/PDJAL and Type rows
   if (hasResult) inner += 10 + 24;
   if (hasPotm) inner += 8 + 22;
   inner += 16;
@@ -141,6 +142,30 @@ function fixturePhoto(match) {
   ctx.fillStyle = SECONDARY;
   ctx.fillText(ellipsize(ctx, sub || 'Add the venue and date on Match Info', W - 90), 36, y + 10);
   y += 20;
+  ctx.font = font(11, 600);
+  ctx.fillStyle = SECONDARY;
+  ctx.fillText('JPL/PDJAL', 36, y + 11);
+  const compLw = ctx.measureText('JPL/PDJAL').width;
+  ctx.font = font(15, 600);
+  ctx.fillStyle = TEXT;
+  ctx.fillText(
+    ellipsize(ctx, match.competition || 'Not set', W - 130 - compLw),
+    36 + compLw + 8,
+    y + 11
+  );
+  y += 22;
+  ctx.font = font(11, 600);
+  ctx.fillStyle = SECONDARY;
+  ctx.fillText('Type', 36, y + 11);
+  const typeLw = ctx.measureText('Type').width;
+  ctx.font = font(15, 600);
+  ctx.fillStyle = TEXT;
+  ctx.fillText(
+    ellipsize(ctx, match.type || 'Not set', W - 130 - typeLw),
+    36 + typeLw + 8,
+    y + 11
+  );
+  y += 22;
   if (hasResult) {
     y += 10;
     ctx.font = font(17, 600);

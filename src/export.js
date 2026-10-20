@@ -70,6 +70,8 @@ export function matchCsv(match) {
   rows.push(line(['MatchStatsLog — Match Export']));
   rows.push('');
   rows.push(line(['Fixture']));
+  rows.push(line(['JPL / PDJAL', match.competition || '']));
+  rows.push(line(['Type', match.type || '']));
   rows.push(line(['Opposition', match.opposition]));
   rows.push(line(['Home or Away', match.homeAway]));
   rows.push(line(['Date', formatDate(match.date)]));
