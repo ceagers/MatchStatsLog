@@ -46,6 +46,8 @@ export default function HomeScreen({ onNavigate }) {
   const shown = savedRecord ? savedRecord.match : match;
 
   const rows = [
+    ['JPL / PDJAL', shown.competition],
+    ['Type', shown.type],
     ['Opposition', shown.opposition],
     ['Home / Away', shown.homeAway],
     ['Date', shown.date ? formatDate(shown.date) : ''],

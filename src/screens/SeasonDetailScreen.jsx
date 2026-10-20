@@ -363,7 +363,7 @@ export default function SeasonDetailScreen({ season, onNavigate, onBack }) {
                     const goals = m.goalTimes.length;
                     const timeMs = m.clock ? clockTotalMs(m.clock) : 0;
                     const title = m.opposition ? `vs ${m.opposition}` : 'No opposition';
-                    const subtitle = [m.homeAway, formatDate(m.date)]
+                    const subtitle = [m.competition, m.type, m.homeAway, formatDate(m.date)]
                       .filter(Boolean)
                       .join(' · ');
                     const textline = [
