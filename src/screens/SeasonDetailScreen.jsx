@@ -6,7 +6,7 @@ import { useState } from 'react';
 import {
   Page, Navbar, NavbarBackLink, Block, BlockTitle, List, ListItem, ListButton,
   Button, Link, Sheet, ListInput, Segmented, SegmentedButton, Dialog,
-  DialogButton, Actions, ActionsGroup, ActionsButton,
+  DialogButton, Actions, ActionsGroup, ActionsButton, ActionsLabel,
 } from 'konsta/react';
 import {
   useMatch, computeSeasonStats, formatDate, formatSavedAt, formatClock,
