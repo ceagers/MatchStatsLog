@@ -445,9 +445,12 @@ export function buildSeasonPhotos(seasonName, division, matchesCounted, players)
   ];
   const left = 36;
   const right = TW - 36;
-  let x = right;
-  const xs = cols.map((c) => { const cx = x; x -= c.w; return cx; });
-  const nameW = xs[xs.length - 1] - cols[cols.length - 1].w - left - 14;
+  // Numeric columns sit on the right edge, laid left→right in the same order
+  // as the screen: GP, St, NA, G, A, POTM, %.
+  const blockW = cols.reduce((n, c) => n + c.w, 0);
+  let cx = right - blockW;
+  const xs = cols.map((c) => { cx += c.w; return cx; });
+  const nameW = xs[0] - cols[0].w - left - 14;
 
   const headerH = 30;
   const rowH = 36;
@@ -517,32 +520,41 @@ export function buildPlayerSeasonPhotos(seasonName, playerName, division, me, ro
   const labelCy = 30;
   const cardY = labelCy + 13;
 
-  // Photo 1 — the season totals, as label:value rows.
-  const totals = [
-    ['Games', me.played],
-    ['Starts', me.starts],
-    ['Goals', me.goals],
-    ['Assists', me.assists],
-    ['POTM', me.potm],
-    ['Minutes', `${me.minutes}m`],
-    ['Played', me.percentage === null ? '—' : `${me.percentage}%`],
+  // Photo 1 — the season totals as the same tile grid the screen shows:
+  // four tiles across, the big number on top, the small uppercase label under.
+  const tiles = [
+    { label: 'Games', value: me.played },
+    { label: 'Starts', value: me.starts },
+    { label: 'Goals', value: me.goals },
+    { label: 'Assists', value: me.assists },
+    { label: 'POTM', value: me.potm },
+    { label: 'Minutes', value: `${me.minutes}m` },
+    { label: 'Played', value: me.percentage === null ? '—' : `${me.percentage}%` },
   ];
-  const totalsCardH = totals.length * 30 + 12;
-  const totalsH = cardY + totalsCardH + 46;
+  const gap = 8;
+  const tileW = (W - 40 - 3 * gap) / 4;
+  const tileH = 64;
+  const tileRows = Math.ceil(tiles.length / 4);
+  const tilesH = tileRows * tileH + (tileRows - 1) * gap;
+  const totalsH = cardY + tilesH + 46;
   const t = makeCtx(totalsH);
   sectionLabel(t.ctx, `${playerName} — Season Totals (${division || 'All'})`, labelCy);
-  card(t.ctx, cardY, totalsCardH);
-  let ty = cardY + 6;
-  totals.forEach(([k, v]) => {
-    t.ctx.font = font(15);
-    t.ctx.fillStyle = SECONDARY;
-    t.ctx.fillText(k, 36, ty + 15);
-    t.ctx.font = font(15, 600);
+  tiles.forEach((tile, i) => {
+    const col = i % 4;
+    const row = Math.floor(i / 4);
+    const x = 20 + col * (tileW + gap);
+    const y = cardY + row * (tileH + gap);
+    t.ctx.fillStyle = CARD;
+    roundRectPath(t.ctx, x, y, tileW, tileH, 10);
+    t.ctx.fill();
+    t.ctx.font = font(20, 600);
     t.ctx.fillStyle = TEXT;
-    t.ctx.textAlign = 'right';
-    t.ctx.fillText(String(v), W - 36, ty + 15);
+    t.ctx.textAlign = 'center';
+    t.ctx.fillText(String(tile.value), x + tileW / 2, y + 26);
+    t.ctx.font = font(9, 600);
+    t.ctx.fillStyle = SECONDARY;
+    t.ctx.fillText(tile.label.toUpperCase(), x + tileW / 2, y + 47);
     t.ctx.textAlign = 'left';
-    ty += 30;
   });
   footer(t.ctx, totalsH, ['MatchStatsLog', seasonName].filter(Boolean).join('  ·  '));
   const totalsPhoto = {
@@ -564,8 +576,11 @@ export function buildPlayerSeasonPhotos(seasonName, playerName, division, me, ro
   ];
   const left = 36;
   const right = TW - 36;
-  let x = right;
-  const xs = cols.map((c) => { const cx = x; x -= c.w; return cx; });
+  // Numeric columns sit on the right edge, laid left→right in the same order
+  // as the screen: H/A, Av, St, G, A, POTM, Time, %.
+  const blockW = cols.reduce((n, c) => n + c.w, 0);
+  let cx = right - blockW;
+  const xs = cols.map((c) => { cx += c.w; return cx; });
   const oppW = xs[0] - left - 14;
 
   const headerH = 30;
