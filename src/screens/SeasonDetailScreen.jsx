@@ -13,6 +13,7 @@ import {
   clockTotalMs,
 } from '../store.jsx';
 import MatchSummary from '../components/MatchSummary.jsx';
+import PlayerSeasonScreen from './PlayerSeasonScreen.jsx';
 import { Icon } from '../icons.js';
 import { haptic } from '../haptics.js';
 import { showToast } from '../toast.jsx';
@@ -43,6 +44,8 @@ export default function SeasonDetailScreen({ season, onNavigate, onBack }) {
   const [confirmSeasonDelete, setConfirmSeasonDelete] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [confirmRestore, setConfirmRestore] = useState(null);
+  // The player whose own season screen is open, or null.
+  const [openPlayer, setOpenPlayer] = useState(null);
 
   // Match played-day key: ISO dates parse directly; a dd/mm/yyyy fallback
   // keeps older records ordering correctly too. Undated matches sit last.
@@ -176,6 +179,17 @@ export default function SeasonDetailScreen({ season, onNavigate, onBack }) {
     confirmSeasonDelete ||
     confirmDelete !== null ||
     confirmRestore !== null;
+
+  if (openPlayer) {
+    return (
+      <PlayerSeasonScreen
+        season={season}
+        playerName={openPlayer}
+        matches={matches}
+        onBack={() => setOpenPlayer(null)}
+      />
+    );
+  }
 
   if (open) {
     return (
@@ -416,7 +430,9 @@ export default function SeasonDetailScreen({ season, onNavigate, onBack }) {
         </>
       )}
 
-      {seg === 1 && <PlayerTotals matches={matches} />}
+      {seg === 1 && (
+        <PlayerTotals matches={matches} onOpenPlayer={setOpenPlayer} />
+      )}
 
       <Actions opened={moveOpen} onBackdropClick={() => setMoveOpen(false)}>
         <ActionsGroup>
@@ -506,8 +522,9 @@ export default function SeasonDetailScreen({ season, onNavigate, onBack }) {
 }
 
 // The per-player season totals, counted up from the season's saved matches.
-// Tap a column title to sort by it; tap again to flip the order.
-function PlayerTotals({ matches }) {
+// Tap a column title to sort by it; tap again to flip the order. Tap a
+// player's row to open their own match-by-match screen.
+function PlayerTotals({ matches, onOpenPlayer }) {
   const { players, matchesCounted } = computeSeasonStats(matches);
   const [sort, setSort] = useState(null); // { key, dir: 'asc' | 'desc' } | null
 
@@ -598,13 +615,22 @@ function PlayerTotals({ matches }) {
         {sorted.map((p, i) => (
           <li
             key={p.name}
-            className={`flex items-center gap-2 px-3 py-2 ${
+            className={`flex items-center ${
               i < sorted.length - 1 ? 'hairline-b' : ''
             }`}
           >
-            <span className="min-w-0 flex-1 truncate text-[15px] font-semibold">
-              {p.name}
-            </span>
+            <button
+              type="button"
+              onClick={() => {
+                haptic('tick');
+                onOpenPlayer(p.name);
+              }}
+              className="flex w-full items-center gap-2 px-3 py-2 text-left
+                         transition-colors active:bg-black/5 dark:active:bg-white/10"
+            >
+              <span className="min-w-0 flex-1 truncate text-[15px] font-semibold">
+                {p.name}
+              </span>
             <span className="w-8 text-center text-[14px] tabular-nums">{p.played}</span>
             <span className="w-8 text-center text-[14px] tabular-nums">{p.starts}</span>
             <span className="w-8 text-center text-[14px] tabular-nums">
@@ -616,6 +642,12 @@ function PlayerTotals({ matches }) {
             <span className="w-8 text-center text-[14px] font-semibold tabular-nums text-primary">
               {p.percentage === null ? '—' : `${p.percentage}%`}
             </span>
+            <Icon
+              name="chevron-right"
+              size={14}
+              className="shrink-0 text-gray-400 dark:text-gray-500"
+            />
+            </button>
           </li>
         ))}
       </List>
@@ -627,7 +659,8 @@ function PlayerTotals({ matches }) {
         every match logged. POTM counts player-of-the-match awards. A match with an unmarked
         squad grid carries no appearance data and is left out of those counts;
         goals and awards logged in it still count. Tap a column title to sort
-        the table; tap again to flip the order.
+        the table; tap again to flip the order. Tap a player's row to see their
+        match-by-match season.
       </Block>
     </>
   );
