@@ -27,12 +27,14 @@ function periodLabel(state) {
   return '-';
 }
 
+// Tolerates a missing match — the season screens mount the export sheet before
+// any match exists, and the sheet only names its file once it actually opens.
 export function matchFileName(match) {
-  const who = (match.opposition || 'match')
+  const who = ((match && match.opposition) || 'match')
     .trim()
     .replace(/[^A-Za-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
-  return `MatchStatsLog-${who || 'match'}-${match.date || 'undated'}.csv`;
+  return `MatchStatsLog-${who || 'match'}-${(match && match.date) || 'undated'}.csv`;
 }
 
 /// The whole match as one spreadsheet: fixture, squad, time, goals, subs.
