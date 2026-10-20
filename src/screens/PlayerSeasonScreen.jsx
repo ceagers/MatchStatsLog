@@ -146,7 +146,7 @@ export default function PlayerSeasonScreen({ season, playerName, matches, onBack
       />
 
       {displayName ? (
-        <Block className="!mb-1 text-[19px] font-semibold">{displayName}</Block>
+        <Block className="!mb-1 text-center text-[19px] font-semibold">{displayName}</Block>
       ) : null}
       <Block className="!mb-2 text-[13px] text-gray-500 dark:text-gray-400">
         {season.name}
