@@ -526,10 +526,10 @@ function PlayerTotals({ matches }) {
     haptic('tick');
     setSort((s) =>
       s && s.key === key
-        ? s.dir === 'asc'
-          ? { key, dir: 'desc' }
+        ? s.dir === 'desc'
+          ? { key, dir: 'asc' }
           : null
-        : { key, dir: 'asc' }
+        : { key, dir: 'desc' }
     );
   };
 
