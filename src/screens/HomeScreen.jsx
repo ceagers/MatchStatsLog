@@ -1,7 +1,7 @@
 // Home: the launch screen. The photo fills the whole screen as this tab's
 // wallpaper, with the title over it and the day's fixture underneath, shown
 // read-only straight from the match info screen. Any saved match can also be
-// put here from the Saved screen, so every match gets its own home view of
+// put here from the Season screen, so every match gets its own home view of
 // its fixture.
 
 import { Page, Button } from 'konsta/react';
@@ -123,7 +123,7 @@ export default function HomeScreen({ onNavigate }) {
             </div>
             <p className="mt-2 text-center text-[12px] text-white/60 [text-shadow:0_1px_6px_rgba(0,0,0,0.5)]">
               {savedRecord
-                ? 'Read only. Open the saved match from the Saved tab for the full record.'
+                ? 'Read only. Open the saved match from the Season tab for the full record.'
                 : 'Read only. Edit these details on the Match Info screen.'}
             </p>
           </div>
@@ -137,7 +137,7 @@ export default function HomeScreen({ onNavigate }) {
                 onClick={() => {
                   haptic('tick');
                   setSavedOpenId(savedRecord.id);
-                  onNavigate('saved');
+                  onNavigate('season');
                 }}
               >
                 View Full Match

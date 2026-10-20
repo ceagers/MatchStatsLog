@@ -15,7 +15,7 @@ import MatchInfoScreen from './screens/MatchInfoScreen.jsx';
 import TimerScreen from './screens/TimerScreen.jsx';
 import PlayersScreen from './screens/PlayersScreen.jsx';
 import GoalLoggerScreen from './screens/GoalLoggerScreen.jsx';
-import SavedMatchesScreen from './screens/SavedMatchesScreen.jsx';
+import SeasonScreen from './screens/SeasonScreen.jsx';
 import UtilitiesScreen from './screens/UtilitiesScreen.jsx';
 
 // Home first, then the screens in the order the coach walks them on the day.
@@ -25,7 +25,7 @@ const TABS = [
   { id: 'timer', label: 'Timer', icon: 'timer' },
   { id: 'players', label: 'Players', icon: 'users' },
   { id: 'goals', label: 'Goals', icon: 'target' },
-  { id: 'saved', label: 'Saved', icon: 'archive' },
+  { id: 'season', label: 'Season', icon: 'trophy' },
   { id: 'utilities', label: 'Utilities', icon: 'wrench' },
 ];
 
@@ -151,7 +151,7 @@ export default function AppScreen() {
         {tab === 'timer' && <TimerScreen onNext={() => setTab('players')} />}
         {tab === 'players' && <PlayersScreen onNext={() => setTab('goals')} />}
         {tab === 'goals' && <GoalLoggerScreen />}
-        {tab === 'saved' && <SavedMatchesScreen onNavigate={setTab} />}
+        {tab === 'season' && <SeasonScreen onNavigate={setTab} />}
         {tab === 'utilities' && <UtilitiesScreen />}
       </div>
 

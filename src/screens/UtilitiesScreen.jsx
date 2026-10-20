@@ -129,7 +129,7 @@ export default function UtilitiesScreen() {
       <Block className="!mt-1 text-[13px] text-gray-500 dark:text-gray-400">
         {savedRecord
           ? `Last saved ${formatSavedAt(savedRecord.savedAt)}. Saving again updates that record.`
-          : 'Keeps a full copy of this match — fixture, squad, clock, goals and substitutions — on the Saved tab.'}
+          : 'Keeps a full copy of this match — fixture, squad, clock, goals and substitutions — on the Season tab.'}
       </Block>
 
       <BlockTitle>Photos</BlockTitle>

@@ -16,6 +16,7 @@ export const PERIOD_RED = 2;
 const STORE_KEY = 'matchday.v2';
 const LEGACY_KEY = 'matchday.v1';
 const SAVED_KEY = 'matchday.saved.v1';
+const SEASONS_KEY = 'matchday.seasons.v1';
 
 function todayISO() {
   const now = new Date();
@@ -323,8 +324,46 @@ function loadMatch() {
   }
 }
 
-// Saved match history: newest first, each an immutable snapshot of a match.
-function loadSaved() {
+// --- Seasons ---------------------------------------------------------------
+// Matches are filed under a season, and exactly one season is current:
+// every newly saved match lands in the current season.
+
+function makeSeason(name) {
+  return { id: crypto.randomUUID(), name, createdAt: new Date().toISOString() };
+}
+
+function loadSeasonStore() {
+  let seasons = [];
+  let currentId = null;
+  try {
+    const raw = localStorage.getItem(SEASONS_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed && parsed.seasons)) {
+        seasons = parsed.seasons
+          .filter((s) => s && typeof s === 'object' && typeof s.id === 'string')
+          .map((s) => ({
+            id: s.id,
+            name: typeof s.name === 'string' && s.name.trim() ? s.name : 'Season',
+            createdAt:
+              typeof s.createdAt === 'string' ? s.createdAt : new Date().toISOString(),
+          }));
+        if (typeof parsed.currentId === 'string') currentId = parsed.currentId;
+      }
+    }
+  } catch {
+    /* fall through to a fresh default season */
+  }
+  if (!seasons.length) seasons = [makeSeason('Default Season')];
+  if (!seasons.some((s) => s.id === currentId)) currentId = seasons[0].id;
+  return { seasons, currentId };
+}
+
+// Saved match history: newest first, each an immutable snapshot of a match,
+// filed under a season. Records from before seasons existed land in the
+// default season.
+function loadSaved(seasonList, defaultSeasonId) {
+  const known = new Set((seasonList || []).map((s) => s.id));
   try {
     const raw = localStorage.getItem(SAVED_KEY);
     const list = raw ? JSON.parse(raw) : [];
@@ -334,6 +373,10 @@ function loadSaved() {
       .map((r) => ({
         id: r.id,
         savedAt: typeof r.savedAt === 'string' ? r.savedAt : new Date().toISOString(),
+        seasonId:
+          typeof r.seasonId === 'string' && known.has(r.seasonId)
+            ? r.seasonId
+            : defaultSeasonId,
         match: normalise(r.match),
       }));
   } catch {
@@ -349,7 +392,12 @@ export function useMatch() {
 
 export function MatchProvider({ children }) {
   const [match, setMatch] = useState(loadMatch);
-  const [savedMatches, setSavedMatches] = useState(loadSaved);
+  const seasonStore = loadSeasonStore();
+  const [seasons, setSeasons] = useState(seasonStore.seasons);
+  const [currentSeasonId, setCurrentSeasonId] = useState(seasonStore.currentId);
+  const [savedMatches, setSavedMatches] = useState(() =>
+    loadSaved(seasonStore.seasons, seasonStore.currentId)
+  );
 
   // Which match the Home screen shows its fixture for: null is the match being
   // worked on, otherwise the id of a saved match. Ephemeral view state, not
@@ -375,9 +423,71 @@ export function MatchProvider({ children }) {
     }
   }, [savedMatches]);
 
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        SEASONS_KEY,
+        JSON.stringify({ seasons, currentId: currentSeasonId })
+      );
+    } catch {
+      /* storage full or unavailable — the app keeps working in memory */
+    }
+  }, [seasons, currentSeasonId]);
+
+  // The season newly saved matches are filed under.
+  const currentSeason =
+    seasons.find((s) => s.id === currentSeasonId) || seasons[0] || null;
+
+  const addSeason = (rawName) => {
+    const name = (rawName || '').trim() || 'New Season';
+    const season = makeSeason(name);
+    setSeasons((list) => [...list, season]);
+    setCurrentSeasonId(season.id);
+    return season;
+  };
+
+  const setCurrentSeason = (id) => {
+    if (!seasons.some((s) => s.id === id)) return;
+    setCurrentSeasonId(id);
+  };
+
+  const renameSeason = (id, rawName) => {
+    const name = (rawName || '').trim();
+    if (!name) return;
+    setSeasons((list) => list.map((s) => (s.id === id ? { ...s, name } : s)));
+  };
+
+  // A season still holding matches cannot be deleted — its records would be
+  // orphaned. Move or delete its matches first.
+  const deleteSeason = (id) => {
+    if (seasons.length <= 1) return false;
+    if (savedMatches.some((r) => r.seasonId === id)) return false;
+    const rest = seasons.filter((s) => s.id !== id);
+    setSeasons(rest);
+    if (currentSeasonId === id) setCurrentSeasonId(rest[0].id);
+    return true;
+  };
+
+  // Re-file one or more saved matches into another season.
+  const moveMatchesToSeason = (ids, seasonId) => {
+    const wanted = new Set(Array.isArray(ids) ? ids : []);
+    if (!wanted.size || !seasons.some((s) => s.id === seasonId)) return;
+    setSavedMatches((list) =>
+      list.map((r) => (wanted.has(r.id) ? { ...r, seasonId } : r))
+    );
+  };
+
   const value = {
     match,
     savedMatches,
+    seasons,
+    currentSeasonId,
+    currentSeason,
+    addSeason,
+    setCurrentSeason,
+    renameSeason,
+    deleteSeason,
+    moveMatchesToSeason,
     homeViewId,
     setHomeView: setHomeViewId,
     savedOpenId,
@@ -599,8 +709,15 @@ export function MatchProvider({ children }) {
       );
       setSavedMatches((list) =>
         list.some((r) => r.id === id)
-          ? list.map((r) => (r.id === id ? { id, savedAt, match: snapshot } : r))
-          : [{ id, savedAt, match: snapshot }, ...list]
+          ? list.map((r) =>
+              r.id === id
+                ? { id, savedAt, seasonId: r.seasonId || currentSeasonId, match: snapshot }
+                : r
+            )
+          : [
+              { id, savedAt, seasonId: currentSeasonId, match: snapshot },
+              ...list,
+            ]
       );
       setMatch((m) => ({ ...m, savedId: id }));
       return id;
@@ -660,4 +777,93 @@ export function formatSavedAt(iso) {
     hour: '2-digit',
     minute: '2-digit',
   });
+}
+
+// --- Season totals -----------------------------------------------------------
+// Per-player roll-up across every saved match in a season. A green Period 1
+// mark is a start, red is on the bench (still a game played), and no colour
+// is not available. A match whose squad grid was never marked carries no
+// appearance data, so it is left out of the played/started/not-available and
+// minutes counts — goals logged in it still count.
+export function computeSeasonStats(records) {
+  const blank = () => ({
+    played: 0,
+    starts: 0,
+    notAvailable: 0,
+    goals: 0,
+    assists: 0,
+    minutes: 0,
+    teamMinutes: 0,
+  });
+
+  const totals = new Map();
+  const order = [];
+  const ensure = (name) => {
+    let t = totals.get(name);
+    if (!t) {
+      t = blank();
+      totals.set(name, t);
+      order.push(name);
+    }
+    return t;
+  };
+
+  let matchesCounted = 0;
+
+  (Array.isArray(records) ? records : []).forEach((record) => {
+    const match = record && record.match;
+    if (!match) return;
+    const players = Array.isArray(match.players) ? match.players : [];
+
+    players.forEach((p) => ensure(p.name));
+    players.forEach((p) => {
+      const t = totals.get(p.name);
+      t.goals += Number.isFinite(p.goals) ? p.goals : 0;
+      t.assists += Number.isFinite(p.assists) ? p.assists : 0;
+    });
+
+    const gridUsed = players.some(
+      (p) => Array.isArray(p.periods) && p.periods.some((s) => s !== PERIOD_UNSET)
+    );
+    if (!gridUsed) return;
+
+    matchesCounted += 1;
+
+    players.forEach((p) => {
+      const t = totals.get(p.name);
+      const first = Array.isArray(p.periods) ? p.periods[0] : PERIOD_UNSET;
+      if (first === PERIOD_GREEN) {
+        t.played += 1;
+        t.starts += 1;
+      } else if (first === PERIOD_RED) {
+        t.played += 1;
+      } else {
+        t.notAvailable += 1;
+      }
+    });
+
+    const timedMs = clockTotalMs(match.clock);
+    const matchMinutes =
+      timedMs >= 60000
+        ? Math.floor(timedMs / 60000)
+        : Number.isFinite(match.gameLength) && match.gameLength > 0
+          ? match.gameLength
+          : 0;
+    if (matchMinutes > 0) {
+      const { minutes } = computePlayerMinutes(match);
+      players.forEach((p) => {
+        const t = totals.get(p.name);
+        t.minutes += minutes.get(p.name) || 0;
+        t.teamMinutes += matchMinutes;
+      });
+    }
+  });
+
+  const players = order.map((name) => {
+    const t = totals.get(name);
+    const percentage =
+      t.teamMinutes > 0 ? Math.round((100 * t.minutes) / t.teamMinutes) : null;
+    return { name, ...t, percentage };
+  });
+  return { players, matchesCounted };
 }
