@@ -44,7 +44,19 @@ export default function SeasonDetailScreen({ season, onNavigate, onBack }) {
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [confirmRestore, setConfirmRestore] = useState(null);
 
-  const matches = savedMatches.filter((r) => r.seasonId === season.id);
+  // Match played-day key: ISO dates parse directly; a dd/mm/yyyy fallback
+  // keeps older records ordering correctly too. Undated matches sit last.
+  const dateOf = (record) => {
+    const d = record.match && record.match.date;
+    if (!d) return 0;
+    const t = new Date(d).getTime();
+    if (!Number.isNaN(t)) return t;
+    const parts = /^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/.exec(String(d));
+    return parts ? new Date(+parts[3], +parts[2] - 1, +parts[1]).getTime() : 0;
+  };
+  const matches = savedMatches
+    .filter((r) => r.seasonId === season.id)
+    .sort((a, b) => dateOf(b) - dateOf(a));
   const isCurrent = season.id === currentSeasonId;
   const otherSeasons = seasons.filter((s) => s.id !== season.id);
 
@@ -494,8 +506,49 @@ export default function SeasonDetailScreen({ season, onNavigate, onBack }) {
 }
 
 // The per-player season totals, counted up from the season's saved matches.
+// Tap a column title to sort by it; tap again to flip the order.
 function PlayerTotals({ matches }) {
   const { players, matchesCounted } = computeSeasonStats(matches);
+  const [sort, setSort] = useState(null); // { key, dir: 'asc' | 'desc' } | null
+
+  const cols = [
+    { key: 'name', label: 'Player', w: 'min-w-0 flex-1' },
+    { key: 'played', label: 'GP', w: 'w-8' },
+    { key: 'starts', label: 'St', w: 'w-8' },
+    { key: 'notAvailable', label: 'NA', w: 'w-8' },
+    { key: 'goals', label: 'G', w: 'w-8' },
+    { key: 'assists', label: 'A', w: 'w-8' },
+    { key: 'potm', label: 'POTM', w: 'w-10' },
+    { key: 'percentage', label: '%', w: 'w-8' },
+  ];
+
+  const toggleSort = (key) => {
+    haptic('tick');
+    setSort((s) =>
+      s && s.key === key
+        ? s.dir === 'asc'
+          ? { key, dir: 'desc' }
+          : null
+        : { key, dir: 'asc' }
+    );
+  };
+
+  const sorted =
+    sort === null
+      ? players
+      : [...players].sort((a, b) => {
+          const va = sort.key === 'percentage'
+            ? (a.percentage === null ? -1 : a.percentage)
+            : a[sort.key];
+          const vb = sort.key === 'percentage'
+            ? (b.percentage === null ? -1 : b.percentage)
+            : b[sort.key];
+          const cmp =
+            typeof va === 'string'
+              ? va.localeCompare(vb)
+              : va - vb;
+          return sort.dir === 'asc' ? cmp : -cmp;
+        });
 
   if (matches.length === 0) {
     return (
@@ -514,27 +567,39 @@ function PlayerTotals({ matches }) {
         </span>
       </BlockTitle>
       <List strong inset>
-        <li className="flex items-center gap-2 px-3 pb-1 pt-2">
-          <span className="min-w-0 flex-1 text-[11px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
-            Player
-          </span>
-          {['GP', 'St', 'NA', 'G', 'A', 'POTM', '%'].map((h) => (
-            <span
-              key={h}
-              className={`${
-                h === 'POTM' ? 'w-10' : 'w-8'
-              } shrink-0 text-center text-[11px] font-medium uppercase
-                         tracking-wide text-gray-400 dark:text-gray-500`}
-            >
-              {h}
-            </span>
-          ))}
+        <li className="flex items-end gap-2 px-3 pb-1 pt-2">
+          {cols.map((c) => {
+            const active = sort !== null && sort.key === c.key;
+            return (
+              <button
+                key={c.key}
+                type="button"
+                onClick={() => toggleSort(c.key)}
+                className={`${c.w} flex shrink-0 flex-col items-start gap-0.5
+                            text-[11px] font-medium uppercase tracking-wide
+                            transition-colors active:opacity-60 ${
+                              active
+                                ? 'text-primary'
+                                : 'text-gray-400 dark:text-gray-500'
+                            }`}
+              >
+                <span className={c.key === 'name' ? '' : 'w-full text-center'}>
+                  {c.label}
+                </span>
+                <Icon
+                  name={active && sort.dir === 'desc' ? 'chevron-down' : 'chevron-up'}
+                  size={11}
+                  className={active ? '' : 'opacity-0'}
+                />
+              </button>
+            );
+          })}
         </li>
-        {players.map((p, i) => (
+        {sorted.map((p, i) => (
           <li
             key={p.name}
             className={`flex items-center gap-2 px-3 py-2 ${
-              i < players.length - 1 ? 'hairline-b' : ''
+              i < sorted.length - 1 ? 'hairline-b' : ''
             }`}
           >
             <span className="min-w-0 flex-1 truncate text-[15px] font-semibold">
@@ -560,7 +625,8 @@ function PlayerTotals({ matches }) {
         red. Percentage played is minutes on the pitch against total match
         time. POTM counts player-of-the-match awards. A match with an unmarked
         squad grid carries no appearance data and is left out of those counts;
-        goals and awards logged in it still count.
+        goals and awards logged in it still count. Tap a column title to sort
+        the table; tap again to flip the order.
       </Block>
     </>
   );
