@@ -1,7 +1,7 @@
-// Settings: the floating panel behind the cog on the Match Info screen.
-// Appearance (light/dark/system), accent colour, font, the two wallpaper
-// photos, and the editable option lists behind the JPL/PDJAL and Type
-// dropdowns — each change applies instantly.
+// Settings: the floating panel opened from the Settings section at the top
+// of the Utilities screen. Appearance (light/dark/system), accent colour,
+// font, the two wallpaper photos, and the editable option lists behind the
+// JPL/PDJAL and Type dropdowns — each change applies instantly.
 
 import { useRef, useState } from 'react';
 import {

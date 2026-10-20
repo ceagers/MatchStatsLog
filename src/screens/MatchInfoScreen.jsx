@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import {
   Page, Navbar, Block, BlockTitle, List, ListInput, Button, Link,
 } from 'konsta/react';
@@ -6,8 +5,6 @@ import { useMatch, formatSavedAt } from '../store.jsx';
 import { useSettings } from '../settings.jsx';
 import { showToast } from '../toast.jsx';
 import MatchSummary from '../components/MatchSummary.jsx';
-import SettingsPanel from './SettingsPanel.jsx';
-import { Icon } from '../icons.js';
 import { haptic } from '../haptics.js';
 
 export default function MatchInfoScreen({ onNext }) {
@@ -16,7 +13,6 @@ export default function MatchInfoScreen({ onNext }) {
     setCompetition, setType, setGameLength, setPeriodsUsed, saveCurrentMatch,
   } = useMatch();
   const { competitions, matchTypes } = useSettings();
-  const [settingsOpened, setSettingsOpened] = useState(false);
 
   const savedRecord = savedMatches.find((r) => r.id === match.savedId) || null;
 
@@ -28,31 +24,16 @@ export default function MatchInfoScreen({ onNext }) {
     showToast(savedRecord ? 'Saved match updated' : 'Match saved');
   };
 
-  // The settings panel lifts this screen above the fixed tab bar while open.
-  const modalOpen = settingsOpened;
-
   return (
     <Page
       colors={{ bgIos: 'bg-transparent' }}
-      className={`relative pb-safe-24 ${modalOpen ? 'z-40' : 'z-10'}`}
+      className="relative z-10 pb-safe-24"
     >
       <Navbar
         title="Match Info"
         large
         transparent
         className="top-0 sticky"
-        left={
-          <Link
-            navbar
-            iconOnly
-            onClick={() => {
-              haptic('tick');
-              setSettingsOpened(true);
-            }}
-          >
-            <Icon name="settings" size={24} />
-          </Link>
-        }
         right={<Link navbar onClick={saveMatch}>Save</Link>}
       />
 
@@ -193,8 +174,6 @@ export default function MatchInfoScreen({ onNext }) {
           Go to Match Clock
         </Button>
       </Block>
-
-      <SettingsPanel opened={settingsOpened} onClose={() => setSettingsOpened(false)} />
     </Page>
   );
 }

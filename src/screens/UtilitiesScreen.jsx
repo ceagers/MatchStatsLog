@@ -11,6 +11,7 @@ import { useMatch, formatSavedAt } from '../store.jsx';
 import { showToast } from '../toast.jsx';
 import ExportSheet from '../components/ExportSheet.jsx';
 import PhotosSheet from '../components/PhotosSheet.jsx';
+import SettingsPanel from './SettingsPanel.jsx';
 import { buildMatchPhotos } from '../photos.js';
 import { Icon } from '../icons.js';
 import { haptic } from '../haptics.js';
@@ -18,6 +19,7 @@ import { haptic } from '../haptics.js';
 export default function UtilitiesScreen() {
   const { match, savedMatches, resetMatch, saveCurrentMatch } = useMatch();
   const [confirmReset, setConfirmReset] = useState(false);
+  const [settingsOpened, setSettingsOpened] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [photosOpen, setPhotosOpen] = useState(false);
   const [photos, setPhotos] = useState([]);
@@ -104,9 +106,9 @@ export default function UtilitiesScreen() {
     setPhotosOpen(true);
   };
 
-  // The export sheet, reset confirmation and photos sheet lift this screen
-  // above the tab bar.
-  const modalOpen = confirmReset || exportOpen || photosOpen;
+  // The settings panel, export sheet, reset confirmation and photos sheet
+  // lift this screen above the tab bar.
+  const modalOpen = settingsOpened || confirmReset || exportOpen || photosOpen;
 
   return (
     <>
@@ -118,6 +120,26 @@ export default function UtilitiesScreen() {
 
       <Block className="!mb-2 !mt-0 text-[13px] text-gray-500 dark:text-gray-400">
         Match-day housekeeping: keep the record, hand it over, clear the decks.
+      </Block>
+
+      <BlockTitle>Settings</BlockTitle>
+      <List strong inset>
+        <ListButton
+          onClick={() => {
+            haptic('tick');
+            setSettingsOpened(true);
+          }}
+        >
+          <span className="inline-flex items-center gap-2">
+            <Icon name="settings" size={20} />
+            Open Settings
+          </span>
+        </ListButton>
+      </List>
+      <Block className="!mt-1 text-[13px] text-gray-500 dark:text-gray-400">
+        The look of the app — theme, accent colour and font — plus the division
+        and match type lists behind the JPL/PDJAL and Type dropdowns, and the
+        home photo and badge watermark. Changes apply instantly.
       </Block>
 
       <BlockTitle>Save</BlockTitle>
@@ -212,6 +234,8 @@ export default function UtilitiesScreen() {
         Clears the fixture details, the match clock, all logged goals and substitutions.
         The squad list is kept, and anything already saved to history stays there.
       </Block>
+
+      <SettingsPanel opened={settingsOpened} onClose={() => setSettingsOpened(false)} />
 
       <PhotosSheet
         opened={photosOpen}
