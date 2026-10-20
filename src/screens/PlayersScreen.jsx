@@ -17,7 +17,7 @@ const PERIOD_STYLES = [
 ];
 
 export default function PlayersScreen({ onNext }) {
-  const { match, savedMatches, cyclePeriod, addPlayer, removePlayer, clearPeriods, movePlayer, saveCurrentMatch } = useMatch();
+  const { match, savedMatches, cyclePeriod, addPlayer, removePlayer, clearPeriods, movePlayer, saveCurrentMatch, setPlayerDisplayName } = useMatch();
 
   const [addOpen, setAddOpen] = useState(false);
   const [newName, setNewName] = useState('');
@@ -122,7 +122,7 @@ export default function PlayersScreen({ onNext }) {
 
       <Block className="!mb-2 text-[13px] text-gray-500 dark:text-gray-400">
         {editing
-          ? 'Drag the grip to re-sort the squad. Tap the red button to remove a player.'
+          ? "Drag the grip to re-sort the squad. Type each player's full name in the Name field. Tap the red button to remove a player."
           : 'Tap a period to cycle grey, green, red. Tap a name for more options.'}
       </Block>
 
@@ -193,38 +193,54 @@ export default function PlayersScreen({ onNext }) {
               }`}
             >
               {editing ? (
-                <div className="flex flex-1 items-center gap-3 py-1">
-                  <button
-                    aria-label={`Re-sort ${player.name}`}
-                    onPointerDown={(event) => startDrag(event, player, i)}
-                    onPointerMove={moveDrag}
-                    onPointerUp={endDrag}
-                    onPointerCancel={endDrag}
-                    onLostPointerCapture={endDrag}
-                    className={`flex h-9 w-5 shrink-0 items-center justify-center rounded-md
-                      [touch-action:none] transition-colors duration-150 ${
-                        dragName === player.name
-                          ? 'text-gray-600 dark:text-gray-200'
-                          : 'text-gray-300 active:text-gray-500 dark:text-gray-600'
-                      }`}
-                  >
-                    <Icon name="grip-vertical" size={16} />
-                  </button>
-                  <span className="min-w-0 flex-1 truncate text-[15px] font-semibold">
-                    {player.name}
-                  </span>
-                  <button
-                    onClick={() => {
-                      haptic('tick');
-                      setPendingRemove(player.name);
-                    }}
-                    className="flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-red-500/10
-                               px-3 text-[14px] font-semibold text-red-500
-                               transition-all duration-150 active:scale-95"
-                  >
-                    <Icon name="trash-2" size={16} />
-                    Remove
-                  </button>
+                <div className="flex flex-1 flex-col gap-1.5 py-1">
+                  <div className="flex items-center gap-3">
+                    <button
+                      aria-label={`Re-sort ${player.name}`}
+                      onPointerDown={(event) => startDrag(event, player, i)}
+                      onPointerMove={moveDrag}
+                      onPointerUp={endDrag}
+                      onPointerCancel={endDrag}
+                      onLostPointerCapture={endDrag}
+                      className={`flex h-9 w-5 shrink-0 items-center justify-center rounded-md
+                        [touch-action:none] transition-colors duration-150 ${
+                          dragName === player.name
+                            ? 'text-gray-600 dark:text-gray-200'
+                            : 'text-gray-300 active:text-gray-500 dark:text-gray-600'
+                        }`}
+                    >
+                      <Icon name="grip-vertical" size={16} />
+                    </button>
+                    <span className="min-w-0 flex-1 truncate text-[15px] font-semibold">
+                      {player.name}
+                    </span>
+                    <button
+                      onClick={() => {
+                        haptic('tick');
+                        setPendingRemove(player.name);
+                      }}
+                      className="flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-red-500/10
+                                 px-3 text-[14px] font-semibold text-red-500
+                                 transition-all duration-150 active:scale-95"
+                    >
+                      <Icon name="trash-2" size={16} />
+                      Remove
+                    </button>
+                  </div>
+                  <div className="ml-8">
+                    <span className="text-[11px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                      Name
+                    </span>
+                    <input
+                      type="text"
+                      value={player.displayName || ''}
+                      placeholder="Full name"
+                      onChange={(e) => setPlayerDisplayName(player.name, e.target.value)}
+                      className="mt-0.5 w-full rounded-lg border border-black/10 bg-white px-3 py-1.5
+                                 text-[15px] text-black transition-colors duration-150
+                                 dark:border-white/15 dark:bg-white/10 dark:text-white"
+                    />
+                  </div>
                 </div>
               ) : (
                 <>

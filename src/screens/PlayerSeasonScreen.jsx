@@ -10,6 +10,7 @@ import {
 import { useSettings } from '../settings.jsx';
 import { haptic } from '../haptics.js';
 import {
+  useMatch,
   computeSeasonStats, computePlayerMinutes, clockTotalMs, formatDate,
   PERIOD_UNSET, PERIOD_GREEN,
 } from '../store.jsx';
@@ -21,10 +22,29 @@ const BLANK_TOTALS = {
 
 export default function PlayerSeasonScreen({ season, playerName, matches, onBack }) {
   const { competitions } = useSettings();
+  const { match } = useMatch();
   // Division filter: '__all' counts every game, a value counts only those games.
   // All is the default.
   const [compFilter, setCompFilter] = useState('__all');
   const fullRecs = Array.isArray(matches) ? matches : [];
+
+  // The player's full name, typed on the Players tab's Edit screen, shown at
+  // the top of this screen only. The current squad is the source of truth; the
+  // season's saved records cover a player no longer in the current squad.
+  const displayName = useMemo(() => {
+    const pick = (p) =>
+      p && typeof p.displayName === 'string' ? p.displayName.trim() : '';
+    const live = pick((match.players || []).find((p) => p.name === playerName));
+    if (live) return live;
+    for (const record of fullRecs) {
+      const m = record.match || {};
+      const saved = pick(
+        (Array.isArray(m.players) ? m.players : []).find((pl) => pl.name === playerName)
+      );
+      if (saved) return saved;
+    }
+    return '';
+  }, [match.players, playerName, matches]);
   const { rows, me } = useMemo(() => {
     const recs =
       compFilter === '__all'
@@ -125,6 +145,9 @@ export default function PlayerSeasonScreen({ season, playerName, matches, onBack
         left={<NavbarBackLink text="Back" onClick={onBack} />}
       />
 
+      {displayName ? (
+        <Block className="!mb-1 text-[19px] font-semibold">{displayName}</Block>
+      ) : null}
       <Block className="!mb-2 text-[13px] text-gray-500 dark:text-gray-400">
         {season.name}
       </Block>

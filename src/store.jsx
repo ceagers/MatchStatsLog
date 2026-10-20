@@ -25,7 +25,7 @@ function todayISO() {
 }
 
 function makePlayer(name) {
-  return { name, periods: [0, 0, 0, 0, 0, 0, 0, 0], goals: 0, assists: 0 };
+  return { name, displayName: '', periods: [0, 0, 0, 0, 0, 0, 0, 0], goals: 0, assists: 0 };
 }
 
 // --- The match clock -------------------------------------------------------
@@ -200,6 +200,7 @@ function normalise(raw) {
     const periods = Array.isArray(p.periods) ? p.periods : [];
     players.push({
       name,
+      displayName: typeof p.displayName === 'string' ? p.displayName : '',
       periods: Array.from({ length: 8 }, (_, i) => toPeriodState(periods[i])),
       goals: Number.isFinite(p.goals) ? p.goals : 0,
       assists: Number.isFinite(p.assists) ? p.assists : 0,
@@ -569,6 +570,19 @@ export function MatchProvider({ children }) {
 
     removePlayer: (name) =>
       setMatch((m) => ({ ...m, players: m.players.filter((p) => p.name !== name) })),
+
+    // The player's full name, typed on the Players tab's Edit screen and shown
+    // at the top of their individual season screen. Purely a display label —
+    // the squad identifier (`name`) everywhere else stays untouched.
+    setPlayerDisplayName: (name, raw) =>
+      setMatch((m) => ({
+        ...m,
+        players: m.players.map((p) =>
+          p.name === name
+            ? { ...p, displayName: typeof raw === 'string' ? raw : '' }
+            : p
+        ),
+      })),
 
     // Drag-to-re-sort on the squad screen: lift a player out of one slot and
     // drop them into another. Everything that reads the squad order — the goal
