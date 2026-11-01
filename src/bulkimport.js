@@ -25,6 +25,17 @@
 
 const BOM = '\uFEFF';
 
+// The writer half uses the same CSV discipline as the rest of the app: a cell
+// is quoted only when it has to be, and inner quotes are doubled.
+function cell(value) {
+  const text = value === null || value === undefined ? '' : String(value);
+  return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
+function line(values) {
+  return values.map(cell).join(',');
+}
+
 /// A small CSV row parser — quoted fields, doubled inner quotes, CRLF or LF.
 function parseCsvRows(text) {
   const rows = [];
