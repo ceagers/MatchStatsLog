@@ -1,11 +1,13 @@
 // Match-day photos: the Match Info summary sections redrawn as crisp canvas
-// pictures — the fixture, the Period 1 squad, goals & assists by player, and
-// the goals logged (spread over several pictures when the list is long). They
-// render on a fixed light palette so they look the same whatever the app's
-// appearance is set to, and are handed over as PNG files the user can save to
-// the camera roll or share.
+// pictures — the fixture, the Period 1 squad, goals & assists by player, the
+// goals logged (spread over several pictures when the list is long), the
+// substitutions and the minutes played. They render on a fixed light palette
+// so they look the same whatever the app's appearance is set to, and are
+// handed over as PNG files the user can save to the camera roll or share.
 
-import { formatDate, PERIOD_GREEN, PERIOD_RED } from './store.jsx';
+import {
+  formatDate, computePlayerMinutes, PERIOD_GREEN, PERIOD_RED,
+} from './store.jsx';
 
 const S = 3;            // drawn at 3x so photos stay sharp in Photos
 const W = 390;          // design width in points
@@ -385,15 +387,143 @@ function goalsLoggedPhotos(match) {
   });
 }
 
+// --- Photo 5: the substitutions, paginated ------------------------------------
+
+const SUBS_PER_PAGE = 10;
+
+const subRowH = (sub) => (sub.notes ? 66 : 40);
+
+function subsLoggedPhotos(match) {
+  const subs = [...(match.subs || [])].sort((a, b) => a.minute - b.minute);
+  const pages = [];
+  for (let i = 0; i < subs.length; i += SUBS_PER_PAGE) pages.push(subs.slice(i, i + SUBS_PER_PAGE));
+  if (pages.length === 0) pages.push([]);
+
+  return pages.map((page, pi) => {
+    const labelCy = 30;
+    const cardY = labelCy + 13;
+    const empty = page.length === 0;
+    const cardH = empty ? 40 : page.reduce((n, s) => n + subRowH(s), 0);
+    const height = cardY + cardH + 46;
+    const { canvas, ctx } = makeCtx(height);
+
+    const title =
+      subs.length === 0
+        ? 'Substitutions'
+        : pages.length > 1
+        ? `Substitutions (${subs.length}) · ${pi + 1} of ${pages.length}`
+        : `Substitutions (${subs.length})`;
+    sectionLabel(ctx, title, labelCy);
+    card(ctx, cardY, cardH);
+
+    if (empty) {
+      ctx.font = font(14);
+      ctx.fillStyle = SECONDARY;
+      ctx.fillText('No substitutions logged.', 36, cardY + 20);
+    } else {
+      let y = cardY;
+      page.forEach((s, i) => {
+        if (i > 0) hairline(ctx, 36, y, W - 72);
+        const chipX = minuteChip(ctx, `${s.minute}'`, 36, y + 20, RED);
+        const tx = chipX + 12;
+        const maxW = W - 56 - tx;
+        ctx.font = font(15, 600);
+        ctx.fillStyle = TEXT;
+        ctx.fillText(
+          ellipsize(ctx, `${s.on || '?'} on · ${s.off || '?'} off`, maxW),
+          tx,
+          y + 20
+        );
+        if (s.notes) {
+          ctx.font = font(13);
+          ctx.fillStyle = SECONDARY;
+          ctx.fillText(ellipsize(ctx, s.notes, maxW), tx, y + 38);
+        }
+        y += subRowH(s);
+      });
+    }
+
+    footer(ctx, height, captionFor(match));
+    return {
+      title: pi === 0 ? 'Substitutions' : `Substitutions (${pi + 1})`,
+      name: pages.length > 1 ? `Substitutions ${pi + 1}.png` : 'Substitutions.png',
+      canvas,
+    };
+  });
+}
+
+// --- Photo 6: minutes played ----------------------------------------------------
+
+function minutesPhoto(match) {
+  // The same computation the Match Info summary shows — from the clock and the
+  // substitution log, or estimated from the periods grid when the clock wasn't
+  // used. With neither there is nothing to picture, so the photo is dropped.
+  const played = computePlayerMinutes(match);
+  const rows = match.players
+    .map((p) => ({ name: p.name, mins: played.minutes.get(p.name) || 0 }))
+    .sort((a, b) => b.mins - a.mins || a.name.localeCompare(b.name));
+
+  const labelCy = 30;
+  const cardY = labelCy + 13;
+  const cardH = 6 + 26 + rows.length * 34 + 12;
+  const height = cardY + cardH + 46;
+  const { canvas, ctx } = makeCtx(height);
+
+  sectionLabel(
+    ctx,
+    played.source === 'clock'
+      ? 'Minutes Played — from clock & subs'
+      : `Minutes Played — estimated (${played.periodsUsed} of 8)`,
+    labelCy
+  );
+  card(ctx, cardY, cardH);
+
+  const x1 = W - 36;
+  let y = cardY + 6;
+  ctx.font = font(11, 600);
+  ctx.fillStyle = SECONDARY;
+  ctx.fillText('PLAYER', 36, y + 13);
+  ctx.textAlign = 'right';
+  ctx.fillText('MINS', x1 - 56, y + 13);
+  ctx.fillText('%', x1, y + 13);
+  ctx.textAlign = 'left';
+  y += 26;
+  rows.forEach((r, i) => {
+    const cy = y + 17;
+    if (i > 0) hairline(ctx, 36, cy - 17, W - 72);
+    ctx.font = font(15, 600);
+    ctx.fillStyle = TEXT;
+    ctx.fillText(ellipsize(ctx, r.name, x1 - 160), 36, cy);
+    ctx.font = font(15);
+    ctx.textAlign = 'right';
+    ctx.fillText(`${r.mins}'`, x1 - 56, cy);
+    ctx.fillText(
+      played.fullTime > 0 ? `${Math.round((r.mins / played.fullTime) * 100)}%` : '—',
+      x1,
+      cy
+    );
+    ctx.textAlign = 'left';
+    y += 34;
+  });
+
+  footer(ctx, height, captionFor(match));
+  return { title: 'Minutes Played', name: 'Minutes Played.png', canvas };
+}
+
 // --- The whole set ------------------------------------------------------------
 
 export function buildMatchPhotos(match) {
-  return [
+  const set = [
     fixturePhoto(match),
     squadPhoto(match),
     goalsAssistsPhoto(match),
     ...goalsLoggedPhotos(match),
-  ].map((p) => ({ ...p, dataUrl: p.canvas.toDataURL('image/png') }));
+    ...subsLoggedPhotos(match),
+  ];
+  // Minutes Played only exists once the clock has run or a game length is set —
+  // the same rule the Match Info summary follows.
+  if (computePlayerMinutes(match).source !== 'none') set.push(minutesPhoto(match));
+  return set.map((p) => ({ ...p, dataUrl: p.canvas.toDataURL('image/png') }));
 }
 
 // A generated picture as a file, ready for the iOS share sheet.
