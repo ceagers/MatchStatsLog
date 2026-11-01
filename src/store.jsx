@@ -13,6 +13,9 @@ export const PERIOD_UNSET = 0;
 export const PERIOD_GREEN = 1;
 export const PERIOD_RED = 2;
 
+// The POTM field's whole-squad value: the award went to everyone.
+export const POTM_ALL = 'All';
+
 const STORE_KEY = 'matchday.v2';
 const LEGACY_KEY = 'matchday.v1';
 const SAVED_KEY = 'matchday.saved.v1';
@@ -160,6 +163,8 @@ export function makeMatch() {
     date: todayISO(),
     result: '',
     // Player of the match, picked from the squad list on the Match Info tab.
+    // A shared award stores every name joined with ", "; POTM_ALL stores the
+    // whole-squad award.
     potm: '',
     // Planned length of the game in minutes — 60 or 80, say. 0 until it is
     // set on the Match Info tab; used as the yardstick for minutes played.
@@ -525,6 +530,26 @@ export function MatchProvider({ children }) {
 
     setPotm: (potm) => setMatch((m) => ({ ...m, potm })),
 
+    // Toggle one player — or the whole-squad POTM_ALL option — in or out of
+    // the player-of-the-match list. Picking "All" clears the named picks;
+    // picking a name clears "All".
+    togglePotm: (name) =>
+      setMatch((m) => {
+        const current = potmList(m.potm);
+        const all = current[0] === POTM_ALL;
+        let next;
+        if (name === POTM_ALL) {
+          next = all ? [] : [POTM_ALL];
+        } else if (all) {
+          next = [name];
+        } else if (current.includes(name)) {
+          next = current.filter((n) => n !== name);
+        } else {
+          next = [...current, name];
+        }
+        return { ...m, potm: next.join(', ') };
+      }),
+
     setCompetition: (competition) => setMatch((m) => ({ ...m, competition })),
 
     setType: (type) => setMatch((m) => ({ ...m, type })),
@@ -824,6 +849,21 @@ export function formatSavedAt(iso) {
   });
 }
 
+// --- Player of the match -----------------------------------------------------
+// The POTM field stores one string: a single name, several names joined with
+// ", " when the award is shared, or POTM_ALL for the whole squad. potmList
+// splits it into names; potmIncludes answers whether one player is in it.
+export function potmList(potm) {
+  const v = typeof potm === 'string' ? potm.trim() : '';
+  if (!v) return [];
+  return v.split(',').map((s) => s.trim()).filter(Boolean);
+}
+
+export function potmIncludes(potm, playerName) {
+  const names = potmList(potm);
+  return names[0] === POTM_ALL || names.includes(playerName);
+}
+
 // --- Season totals -----------------------------------------------------------
 // Per-player roll-up across every saved match in a season. A green Period 1
 // mark is a start, red is on the bench (still a game played), and no colour
@@ -871,10 +911,18 @@ export function computeSeasonStats(records) {
     });
 
     // Player-of-the-match awards count for every match in the season — even
-    // one whose squad grid was never marked. A POTM name that doesn't sit in
-    // the squad list still keeps its award (and gains its own row).
-    const potmName = typeof match.potm === 'string' ? match.potm.trim() : '';
-    if (potmName) ensure(potmName).potm += 1;
+    // one whose squad grid was never marked. A shared award credits every
+    // name in the list; "All" credits the whole squad list. A POTM name that
+    // doesn't sit in the squad list still keeps its award (and gains its own
+    // row).
+    const potmNames = potmList(match.potm);
+    if (potmNames[0] === POTM_ALL) {
+      players.forEach((p) => {
+        ensure(p.name).potm += 1;
+      });
+    } else {
+      potmNames.forEach((name) => ensure(name).potm += 1);
+    }
 
     const gridUsed = players.some(
       (p) => Array.isArray(p.periods) && p.periods.some((s) => s !== PERIOD_UNSET)

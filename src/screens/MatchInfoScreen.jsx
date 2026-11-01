@@ -1,20 +1,36 @@
 import {
   Page, Navbar, Block, BlockTitle, List, ListInput, Button, Link,
 } from 'konsta/react';
-import { useMatch, formatSavedAt } from '../store.jsx';
+import {
+  useMatch, formatSavedAt, POTM_ALL, potmList, potmIncludes,
+} from '../store.jsx';
 import { useSettings } from '../settings.jsx';
 import { showToast } from '../toast.jsx';
 import MatchSummary from '../components/MatchSummary.jsx';
 import { haptic } from '../haptics.js';
+import { Icon } from '../icons.js';
 
 export default function MatchInfoScreen({ onNext }) {
   const {
-    match, savedMatches, setOpposition, setHomeAway, setDate, setResult, setPotm,
-    setCompetition, setType, setGameLength, setPeriodsUsed, saveCurrentMatch,
+    match, savedMatches, setOpposition, setHomeAway, setDate, setResult,
+    togglePotm, setCompetition, setType, setGameLength,
+    setPeriodsUsed, saveCurrentMatch,
   } = useMatch();
   const { competitions, matchTypes } = useSettings();
 
   const savedRecord = savedMatches.find((r) => r.id === match.savedId) || null;
+
+  // The rows to offer: the whole-squad option, then the squad list, then any
+  // POTM name saved before it left the squad — kept so old records never lose
+  // their saved value.
+  const potmOptions = [
+    POTM_ALL,
+    ...match.players.map((p) => p.name),
+    ...potmList(match.potm).filter(
+      (n) =>
+        n !== POTM_ALL && !match.players.some((p) => p.name === n)
+    ),
+  ];
 
   // Same save as the Utilities screen, kept handy at the top right of the
   // fixture the coach is filling in.
@@ -131,34 +147,49 @@ export default function MatchInfoScreen({ onNext }) {
           clearButton
           onClear={() => setResult('')}
         />
-        <ListInput
-          label="POTM"
-          type="select"
-          dropdown
-          value={match.potm || ''}
-          onChange={(e) => {
-            haptic('bump');
-            setPotm(e.target.value);
-          }}
-          footer={
-            match.players.length === 0
-              ? 'Populate the squad on the Players tab to pick the winner from the list.'
-              : undefined
-          }
-        >
-          <option value="">None</option>
-          {/* A previously typed POTM that isn't in the squad list is kept as an
-              option, so old records never lose their saved value. */}
-          {match.potm && !match.players.some((p) => p.name === match.potm) && (
-            <option value={match.potm}>{match.potm}</option>
-          )}
-          {match.players.map((p) => (
-            <option key={p.name} value={p.name}>
-              {p.name}
-            </option>
-          ))}
-        </ListInput>
       </List>
+
+      <BlockTitle>Player of the Match</BlockTitle>
+      <List strong inset className="!py-1">
+        {/* The award is shared: every row toggles independently, and "All"
+            gives it to the whole squad. The stored value is one string of
+            names joined with ", ", so old single-name records read as-is. */}
+        {potmOptions.map((name, i, all) => {
+          const selected = potmIncludes(match.potm, name);
+          return (
+            <li key={name} className={i < all.length - 1 ? 'hairline-b' : ''}>
+              <button
+                type="button"
+                onClick={() => {
+                  haptic('bump');
+                  togglePotm(name);
+                }}
+                className="flex w-full items-center gap-3 px-3 py-2.5 text-left
+                           transition-colors active:bg-black/5 dark:active:bg-white/10"
+              >
+                <span
+                  className={`flex h-6 w-6 shrink-0 items-center justify-center
+                              rounded-full border transition-colors ${
+                                selected
+                                  ? 'border-primary bg-primary'
+                                  : 'border-gray-300 dark:border-gray-600'
+                              }`}
+                >
+                  {selected && <Icon name="check" size={14} className="text-white" />}
+                </span>
+                <span className="min-w-0 flex-1 truncate text-[15px] font-semibold">
+                  {name === POTM_ALL ? 'All' : name}
+                </span>
+              </button>
+            </li>
+          );
+        })}
+      </List>
+      <Block className="!mt-1 text-[12px] leading-relaxed text-gray-500 dark:text-gray-400">
+        {match.players.length === 0
+          ? 'Populate the squad on the Players tab to pick the winner from the list.'
+          : 'Tap to award — pick several players to share it, or All for the whole squad.'}
+      </Block>
 
       <MatchSummary match={match} onPeriodsUsed={setPeriodsUsed} />
 

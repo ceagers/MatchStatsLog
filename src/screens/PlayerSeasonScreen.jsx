@@ -12,7 +12,7 @@ import { haptic } from '../haptics.js';
 import {
   useMatch,
   computeSeasonStats, computePlayerMinutes, clockTotalMs, formatDate,
-  PERIOD_UNSET, PERIOD_GREEN,
+  potmIncludes, PERIOD_UNSET, PERIOD_GREEN,
 } from '../store.jsx';
 import ExportSheet from '../components/ExportSheet.jsx';
 import PhotosSheet from '../components/PhotosSheet.jsx';
@@ -108,7 +108,7 @@ export default function PlayerSeasonScreen({ season, playerName, matches, onBack
         started: marked ? started : null,
         goals: p && Number.isFinite(p.goals) ? p.goals : 0,
         assists: p && Number.isFinite(p.assists) ? p.assists : 0,
-        potm: typeof m.potm === 'string' && m.potm.trim() === playerName,
+        potm: potmIncludes(m.potm, playerName),
         minutes: marked && matchMinutes > 0 ? mine : null,
         pct,
       };
@@ -307,7 +307,7 @@ export default function PlayerSeasonScreen({ season, playerName, matches, onBack
         {season.name}, newest first. H/A is home or away; Av is Y when the
         player was on the team sheet, N when not; St is Y when they started
         (green Period 1), N when not; POTM is Y for a player-of-the-match
-        award. Time comes
+        award, shared awards and a whole-squad All included. Time comes
         from the substitution log when the clock ran, otherwise from green grid
         periods against the game length; % is minutes on the pitch against that
         match's length, counted for matches they were available for. A dash
