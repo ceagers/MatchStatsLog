@@ -9,8 +9,11 @@ import {
   Dialog, DialogButton, Sheet, Link, Checkbox,
   Actions, ActionsGroup, ActionsButton, ActionsLabel,
 } from 'konsta/react';
-import { useMatch, formatDate, formatSavedAt } from '../store.jsx';
+import { useMatch, formatDate, formatSavedAt, PERIOD_GREEN, PERIOD_RED } from '../store.jsx';
 import { fullMatchCsv, fullMatchFileName, parseFullMatchCsv } from '../fullmatch.js';
+import {
+  parseBulkMatchesCsv, bulkMatchesCsv, bulkImportFileName,
+} from '../bulkimport.js';
 import { showToast } from '../toast.jsx';
 import ExportSheet from '../components/ExportSheet.jsx';
 import PhotosSheet from '../components/PhotosSheet.jsx';
@@ -20,7 +23,7 @@ import { Icon } from '../icons.js';
 import { haptic } from '../haptics.js';
 
 export default function UtilitiesScreen() {
-  const { match, savedMatches, resetMatch, saveCurrentMatch, importMatch } = useMatch();
+  const { match, savedMatches, currentSeason, resetMatch, saveCurrentMatch, importMatch, importMatchesAsSaved } = useMatch();
   const [confirmReset, setConfirmReset] = useState(false);
   const [settingsOpened, setSettingsOpened] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
@@ -29,6 +32,9 @@ export default function UtilitiesScreen() {
   const [whatsappText, setWhatsappText] = useState(null);
   const [fullExportOpen, setFullExportOpen] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
+  // Which layout the match picker exports into — the complete full-match
+  // transfer, or the simplified one-row-per-match bulk format.
+  const [exportMode, setExportMode] = useState('full');
   const [pickedIds, setPickedIds] = useState(() => new Set());
   const [fullExportList, setFullExportList] = useState([match]);
   const [importChoices, setImportChoices] = useState(null);
@@ -36,6 +42,14 @@ export default function UtilitiesScreen() {
   const [confirmImport, setConfirmImport] = useState(false);
   const [importError, setImportError] = useState('');
   const importInputRef = useRef(null);
+
+  // Bulk import from a simple spreadsheet: one row per match, the Match Info
+  // sections only. The file is parsed up front, previewed in a sheet, and on
+  // confirm every match is filed into history under the current season.
+  const [bulkParsed, setBulkParsed] = useState(null);
+  const [bulkError, setBulkError] = useState('');
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const bulkInputRef = useRef(null);
 
   const savedRecord = savedMatches.find((r) => r.id === match.savedId) || null;
 
@@ -158,6 +172,16 @@ export default function UtilitiesScreen() {
 
   const exportFullMatch = () => {
     haptic('tick');
+    setExportMode('full');
+    setPickedIds(new Set(['current']));
+    setPickerOpen(true);
+  };
+
+  // The bulk-format export shares the match picker with the full-match one —
+  // the same tick list, a different spreadsheet built from whatever is picked.
+  const exportBulkFormat = () => {
+    haptic('tick');
+    setExportMode('bulk');
     setPickedIds(new Set(['current']));
     setPickerOpen(true);
   };
@@ -222,12 +246,69 @@ export default function UtilitiesScreen() {
     showToast('Match imported');
   };
 
+  // --- Bulk import -------------------------------------------------------------
+  // A season of matches from a simple spreadsheet — fixture, POTM, squad and
+  // goals & assists per row — previewed, then filed into history in one go.
+
+  const pickBulkFile = () => {
+    haptic('tick');
+    if (bulkInputRef.current) bulkInputRef.current.click();
+  };
+
+  const onBulkFile = async (event) => {
+    const file = event.target.files && event.target.files[0];
+    event.target.value = ''; // so picking the same file again still fires
+    if (!file) return;
+    try {
+      const parsed = parseBulkMatchesCsv(await file.text());
+      if (!parsed.ok) {
+        haptic('removed');
+        setBulkError(parsed.error);
+        return;
+      }
+      setBulkError('');
+      setBulkParsed({ matches: parsed.matches, warnings: parsed.warnings });
+      setBulkOpen(true);
+    } catch {
+      haptic('removed');
+      setBulkError('That file could not be read.');
+    }
+  };
+
+  // One preview line per match: date, result and the squad/goal counts.
+  const bulkRowText = (m) => {
+    const starting = m.players.filter((p) => p.periods[0] === PERIOD_GREEN).length;
+    const subs = m.players.filter((p) => p.periods[0] === PERIOD_RED).length;
+    const goals = m.players.reduce((n, p) => n + p.goals, 0);
+    return [
+      m.date ? formatDate(m.date) : 'Undated',
+      m.result,
+      `${starting} starting`,
+      `${subs} subs`,
+      `${goals} goal${goals === 1 ? '' : 's'}`,
+    ]
+      .filter(Boolean)
+      .join(' · ');
+  };
+
+  const bulkImport = () => {
+    haptic('archived');
+    const count = importMatchesAsSaved(bulkParsed.matches);
+    setBulkOpen(false);
+    setBulkParsed(null);
+    showToast(
+      `Imported ${count} match${count === 1 ? '' : 'es'} to ${
+        currentSeason ? currentSeason.name : 'the current season'
+      }`
+    );
+  };
+
   // The settings panel, export sheet, reset confirmation and photos sheet
   // lift this screen above the tab bar.
   const modalOpen =
     settingsOpened || confirmReset || exportOpen || photosOpen ||
     fullExportOpen || confirmImport || pickerOpen ||
-    importChoices !== null;
+    importChoices !== null || bulkOpen;
 
   return (
     <>
@@ -371,6 +452,37 @@ export default function UtilitiesScreen() {
         phone now.
       </Block>
 
+      <BlockTitle>Bulk Import</BlockTitle>
+      <List strong inset>
+        <ListButton onClick={pickBulkFile}>
+          <span className="inline-flex items-center gap-2">
+            <Icon name="file-input" size={20} />
+            Import Matches (CSV)
+          </span>
+        </ListButton>
+        <ListButton onClick={exportBulkFormat}>
+          <span className="inline-flex items-center gap-2">
+            <Icon name="file-output" size={20} />
+            Export Bulk Format
+          </span>
+        </ListButton>
+      </List>
+      {bulkError !== '' && (
+        <Block className="!mt-1 !mb-0 text-[13px] k-color-brand-red">
+          {bulkError}
+        </Block>
+      )}
+      <Block className="!mt-1 text-[13px] text-gray-500 dark:text-gray-400">
+        Load a season of matches from a simple spreadsheet: one row per match,
+        with columns for Opposition, Home/Away, Date, Result, POTM, Starting,
+        Subs, Not Available, Goals, Assists and optional Goal Minutes
+        (&quot;12:Name;25:Name:Assist&quot;). Only Opposition and Starting are
+        required; names inside a cell are separated with &quot;;&quot; and a
+        goal count is written after the name (&quot;Name 2&quot;). Every row
+        becomes a saved match in the current season — nothing on this screen
+        changes.
+      </Block>
+
       <BlockTitle>Reset</BlockTitle>
       <List strong inset>
         <ListButton className="k-color-brand-red" onClick={() => setConfirmReset(true)}>
@@ -400,10 +512,22 @@ export default function UtilitiesScreen() {
         opened={fullExportOpen}
         onClose={() => setFullExportOpen(false)}
         match={fullExportList[0] || match}
-        csv={fullExportOpen ? fullMatchCsv(fullExportList) : ''}
-        fileName={fullMatchFileName(fullExportList)}
+        csv={
+          fullExportOpen
+            ? exportMode === 'bulk'
+              ? bulkMatchesCsv(fullExportList)
+              : fullMatchCsv(fullExportList)
+            : ''
+        }
+        fileName={
+          exportMode === 'bulk'
+            ? bulkImportFileName(fullExportList)
+            : fullMatchFileName(fullExportList)
+        }
         description={
-          fullExportList.length > 1
+          exportMode === 'bulk'
+            ? 'The simplified layout — one row per match with the fixture, POTM, the squad split and the goals & assists tallies. This is exactly the format Import Matches reads, so you can see how a hand-made spreadsheet should look, edit it, and load it straight back in.'
+            : fullExportList.length > 1
             ? `${fullExportList.length} complete matches in one spreadsheet — fixture, squad with every period, match time, goals and substitutions for each. Import Full Match reads this file back and offers every match in it.`
             : 'The complete match in one spreadsheet — fixture, squad with every period, match time, goals and substitutions. Import Full Match on another phone reads this file back and rebuilds the match exactly.'
         }
@@ -480,6 +604,63 @@ export default function UtilitiesScreen() {
         className="hidden"
         onChange={onImportFile}
       />
+
+      <input
+        ref={bulkInputRef}
+        type="file"
+        accept=".csv,text/csv,text/comma-separated-values,text/plain"
+        className="hidden"
+        onChange={onBulkFile}
+      />
+
+      <Sheet
+        className="no-safe-areas-top pb-safe flex flex-col max-h-[85dvh]"
+        opened={bulkOpen}
+        onBackdropClick={() => setBulkOpen(false)}
+      >
+        <Navbar
+          title="Bulk import"
+          right={<Link navbar onClick={() => setBulkOpen(false)}>Cancel</Link>}
+        />
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+          {bulkParsed && (
+            <>
+              <Block className="!mb-1 !mt-3 text-[13px] text-gray-500 dark:text-gray-400">
+                {bulkParsed.matches.length} match
+                {bulkParsed.matches.length === 1 ? '' : 'es'} found — they will
+                be saved to {currentSeason ? currentSeason.name : 'the current season'}.
+              </Block>
+              <List strong inset>
+                {bulkParsed.matches.map((m, i) => (
+                  <ListItem
+                    key={i}
+                    title={m.opposition || 'Unnamed match'}
+                    subtitle={bulkRowText(m)}
+                  />
+                ))}
+              </List>
+              {bulkParsed.warnings.length > 0 && (
+                <Block className="!mt-1 text-[13px] text-orange-600 dark:text-orange-400">
+                  <div className="whitespace-pre-wrap">
+                    {bulkParsed.warnings.join('\n')}
+                  </div>
+                </Block>
+              )}
+            </>
+          )}
+        </div>
+        <Block className="shrink-0">
+          <Button
+            large
+            rounded
+            disabled={!bulkParsed || bulkParsed.matches.length === 0}
+            onClick={bulkImport}
+          >
+            Import {bulkParsed ? bulkParsed.matches.length : 0} match
+            {bulkParsed && bulkParsed.matches.length === 1 ? '' : 'es'}
+          </Button>
+        </Block>
+      </Sheet>
 
       <Dialog
         opened={confirmImport}

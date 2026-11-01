@@ -813,6 +813,23 @@ export function MatchProvider({ children }) {
       setMatch({ ...normalise(record.match), savedId: id });
     },
 
+    // Bulk import from the simplified CSV routine: every match lands in
+    // history as its own saved record, filed under the current season. The
+    // live match on the phone now is never touched.
+    importMatchesAsSaved: (incoming) => {
+      const list = Array.isArray(incoming) ? incoming : [incoming];
+      const records = list
+        .filter(Boolean)
+        .map((m) => ({
+          id: crypto.randomUUID(),
+          savedAt: new Date().toISOString(),
+          seasonId: currentSeasonId,
+          match: JSON.parse(JSON.stringify({ ...normalise(m), savedId: null })),
+        }));
+      if (records.length) setSavedMatches((old) => [...records, ...old]);
+      return records.length;
+    },
+
     // A full round trip of the full-match export: everything — fixture, squad,
     // clock, goals and substitutions — is replaced by the imported match,
     // which comes in unsaved so saving files it as a new record.
