@@ -108,7 +108,7 @@ export default function PlayerSeasonScreen({ season, playerName, matches, onBack
         started: marked ? started : null,
         goals: p && Number.isFinite(p.goals) ? p.goals : 0,
         assists: p && Number.isFinite(p.assists) ? p.assists : 0,
-        potm: potmIncludes(m.potm, playerName),
+        potm: potmIncludes(m.potm, playerName, m),
         minutes: marked && matchMinutes > 0 ? mine : null,
         pct,
       };

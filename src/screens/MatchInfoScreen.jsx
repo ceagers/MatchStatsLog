@@ -152,10 +152,11 @@ export default function MatchInfoScreen({ onNext }) {
       <BlockTitle>Player of the Match</BlockTitle>
       <List strong inset className="!py-1">
         {/* The award is shared: every row toggles independently, and "All"
-            gives it to the whole squad. The stored value is one string of
-            names joined with ", ", so old single-name records read as-is. */}
+            gives it to everyone available for the match — the starters and
+            the bench. The stored value is one string of names joined with
+            ", ", so old single-name records read as-is. */}
         {potmOptions.map((name, i, all) => {
-          const selected = potmIncludes(match.potm, name);
+          const selected = potmIncludes(match.potm, name, match);
           return (
             <li key={name} className={i < all.length - 1 ? 'hairline-b' : ''}>
               <button
@@ -188,7 +189,7 @@ export default function MatchInfoScreen({ onNext }) {
       <Block className="!mt-1 text-[12px] leading-relaxed text-gray-500 dark:text-gray-400">
         {match.players.length === 0
           ? 'Populate the squad on the Players tab to pick the winner from the list.'
-          : 'Tap to award — pick several players to share it, or All for the whole squad.'}
+          : 'Tap to award — pick several players to share it, or All for everyone available (starting or on the bench).'}
       </Block>
 
       <MatchSummary match={match} onPeriodsUsed={setPeriodsUsed} />

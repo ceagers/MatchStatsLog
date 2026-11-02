@@ -13,7 +13,8 @@ export const PERIOD_UNSET = 0;
 export const PERIOD_GREEN = 1;
 export const PERIOD_RED = 2;
 
-// The POTM field's whole-squad value: the award went to everyone.
+// The POTM field's whole-squad value: the award went to everyone available
+// for the match.
 export const POTM_ALL = 'All';
 
 const STORE_KEY = 'matchday.v2';
@@ -876,9 +877,34 @@ export function potmList(potm) {
   return v.split(',').map((s) => s.trim()).filter(Boolean);
 }
 
-export function potmIncludes(potm, playerName) {
+export function potmIncludes(potm, playerName, match) {
   const names = potmList(potm);
-  return names[0] === POTM_ALL || names.includes(playerName);
+  if (names[0] === POTM_ALL) {
+    // "All" covers only the players available for the match — starting or on
+    // the bench — once the caller supplies the match to read the grid from.
+    if (playerName === POTM_ALL) return true;
+    return match ? potmAvailableNames(match).includes(playerName) : true;
+  }
+  return names.includes(playerName);
+}
+
+// The players a whole-squad "All" award covers: everyone available for the
+// match — a start (green Period 1) or a seat on the bench (red). When the
+// squad grid was never marked there is no availability data, so the whole
+// squad list is covered, as it always was.
+export function potmAvailableNames(match) {
+  const players =
+    match && Array.isArray(match.players) ? match.players : [];
+  const marked = players.some(
+    (p) => Array.isArray(p.periods) && p.periods.some((s) => s !== PERIOD_UNSET)
+  );
+  if (!marked) return players.map((p) => p.name);
+  return players
+    .filter((p) => {
+      const first = Array.isArray(p.periods) ? p.periods[0] : PERIOD_UNSET;
+      return first === PERIOD_GREEN || first === PERIOD_RED;
+    })
+    .map((p) => p.name);
 }
 
 // --- Season totals -----------------------------------------------------------
@@ -929,13 +955,14 @@ export function computeSeasonStats(records) {
 
     // Player-of-the-match awards count for every match in the season — even
     // one whose squad grid was never marked. A shared award credits every
-    // name in the list; "All" credits the whole squad list. A POTM name that
-    // doesn't sit in the squad list still keeps its award (and gains its own
-    // row).
+    // name in the list; "All" credits only the players available for the
+    // match — starting or benched (the whole squad list when the grid was
+    // never marked). A POTM name that doesn't sit in the squad list still
+    // keeps its award (and gains its own row).
     const potmNames = potmList(match.potm);
     if (potmNames[0] === POTM_ALL) {
-      players.forEach((p) => {
-        ensure(p.name).potm += 1;
+      potmAvailableNames(match).forEach((name) => {
+        ensure(name).potm += 1;
       });
     } else {
       potmNames.forEach((name) => ensure(name).potm += 1);
