@@ -1145,4 +1145,10 @@ body {
   }
 }
 </script>
+<!-- JSX fallback: outside the app's own viewer and the compiled GitHub Pages
+     build, the raw module sources are served with a MIME type the browser
+     refuses for module scripts. This loader stays idle when the module script
+     below runs, and only when the browser reports it failed does it transpile
+     the module graph in-page and run it from blob URLs. -->
+<script src="vendor/jsx-loader.js"></script>
 <script type="module" src="src/main.jsx"></script>
