@@ -1,4 +1,5 @@
-// Home: the launch screen. The photo fills the whole screen as this tab's
+// Summary (tab id stays 'home'): the day's summary. The photo fills the whole
+// screen as this tab's
 // wallpaper, with the title over it and the day's fixture underneath, shown
 // read-only straight from the match info screen. Any saved match can also be
 // put here from the Season screen, so every match gets its own home view of

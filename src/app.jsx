@@ -13,21 +13,19 @@ import { ToastHost } from './toast.jsx';
 import SquadScreen from './screens/SquadScreen.jsx';
 import HomeScreen from './screens/HomeScreen.jsx';
 import MatchInfoScreen from './screens/MatchInfoScreen.jsx';
-import TimerScreen from './screens/TimerScreen.jsx';
 import PlayersScreen from './screens/PlayersScreen.jsx';
-import GoalLoggerScreen from './screens/GoalLoggerScreen.jsx';
+import InGameScreen from './screens/InGameScreen.jsx';
 import SeasonScreen from './screens/SeasonScreen.jsx';
 import UtilitiesScreen from './screens/UtilitiesScreen.jsx';
 
-// The constant Squad screen first, then Home and the screens in the order
-// the coach walks them on the day.
+// The Squad screen first — the app lands on it — then Summary and the screens
+// in the order the coach walks them on the day.
 const TABS = [
   { id: 'squad', label: 'Squad', icon: 'shirt' },
-  { id: 'home', label: 'Home', icon: 'house' },
+  { id: 'home', label: 'Summary', icon: 'newspaper' },
   { id: 'info', label: 'Match Info', icon: 'clipboard-list' },
   { id: 'players', label: 'Players', icon: 'users' },
-  { id: 'timer', label: 'Timer', icon: 'timer' },
-  { id: 'goals', label: 'Goals', icon: 'target' },
+  { id: 'ingame', label: 'In Game', icon: 'timer' },
   { id: 'season', label: 'Season', icon: 'trophy' },
   { id: 'utilities', label: 'Utilities', icon: 'wrench' },
 ];
@@ -39,7 +37,7 @@ const SWIPE_BLOCKED_SELECTOR =
   '.k-dialog, .k-sheet, .k-popup, .k-panel, .k-actions, .k-toast, .k-popover';
 
 export default function AppScreen() {
-  const [tab, setTabState] = useState('home');
+  const [tab, setTabState] = useState('squad');
   const [dir, setDir] = useState(1); // 1: the new screen comes in from the right
   const { badgeImage } = useSettings();
 
@@ -151,10 +149,9 @@ export default function AppScreen() {
       >
         {tab === 'squad' && <SquadScreen />}
         {tab === 'home' && <HomeScreen onNavigate={setTab} />}
-        {tab === 'info' && <MatchInfoScreen onNext={() => setTab('timer')} />}
-        {tab === 'timer' && <TimerScreen onNext={() => setTab('players')} />}
-        {tab === 'players' && <PlayersScreen onNext={() => setTab('goals')} />}
-        {tab === 'goals' && <GoalLoggerScreen />}
+        {tab === 'info' && <MatchInfoScreen onNext={() => setTab('players')} />}
+        {tab === 'players' && <PlayersScreen onNext={() => setTab('ingame')} />}
+        {tab === 'ingame' && <InGameScreen />}
         {tab === 'season' && <SeasonScreen onNavigate={setTab} />}
         {tab === 'utilities' && <UtilitiesScreen />}
       </div>

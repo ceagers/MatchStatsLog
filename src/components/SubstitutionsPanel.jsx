@@ -1,5 +1,8 @@
-// The substitutions log, sitting under the squad. It mirrors the Goal Logger:
-// a minute that can ride the match clock, an On player and an Off player.
+// The substitutions UI. The New Substitution form mirrors the Goal Logger: a
+// minute that can ride the match clock, an On player and an Off player. The
+// form and the Substitutions Logged list share one state hook, so they can be
+// laid out apart — the In Game screen slots the logged goals between them — or
+// together, as the Players screen shows them.
 
 import { useEffect, useState } from 'react';
 import {
@@ -15,7 +18,10 @@ import { showToast } from '../toast.jsx';
 
 const MINUTES = Array.from({ length: 120 }, (_, i) => i + 1);
 
-export default function SubstitutionsPanel({ onModalOpen }) {
+// The state and actions behind both halves. onModalOpen reports the edit sheet
+// and confirmation sheet to the host screen, so it can lift itself (and this
+// panel's action sheet) above the fixed tab bar while either is open.
+export function useSubstitutions({ onModalOpen } = {}) {
   const { match, addSub, removeSub, updateSub } = useMatch();
   const names = match.players.map((p) => p.name);
 
@@ -50,8 +56,6 @@ export default function SubstitutionsPanel({ onModalOpen }) {
   const sortedSubs = [...match.subs].sort((a, b) => a.minute - b.minute);
   const target = pendingDelete ? match.subs.find((s) => s.id === pendingDelete) : null;
 
-  // Report the confirmation sheet to the host screen, so it can lift itself
-  // (and this panel's action sheet) above the fixed tab bar while it is open.
   useEffect(() => {
     if (onModalOpen) onModalOpen(pendingDelete !== null || editing !== null);
   }, [pendingDelete, editing, onModalOpen]);
@@ -93,6 +97,24 @@ export default function SubstitutionsPanel({ onModalOpen }) {
     setEditing(null);
     showToast('Substitution updated');
   };
+
+  return {
+    match, names, removeSub,
+    minute, setMinute, onPlayer, setOnPlayer, offPlayer, setOffPlayer,
+    notes, setNotes, followClock, setFollowClock,
+    pendingDelete, setPendingDelete, editing, setEditing,
+    editMinute, setEditMinute, editOn, setEditOn, editOff, setEditOff, editNotes, setEditNotes,
+    activeOn, activeOff, samePlayer, shortage,
+    sortedSubs, target, save, startEdit, saveEdit,
+  };
+}
+
+// The New Substitution form: clock readout, follow toggle, then the pickers.
+export function SubstitutionForm({ sub }) {
+  const {
+    match, names, minute, setMinute, activeOn, activeOff, samePlayer, shortage,
+    followClock, setFollowClock, notes, setNotes, save,
+  } = sub;
 
   return (
     <>
@@ -190,11 +212,24 @@ export default function SubstitutionsPanel({ onModalOpen }) {
           </Block>
         </>
       )}
+    </>
+  );
+}
 
+// The Substitutions Logged list, with its edit sheet and delete confirmation.
+export function SubstitutionsLog({ sub }) {
+  const {
+    sortedSubs, pendingDelete, setPendingDelete, target, startEdit, saveEdit,
+    editing, setEditing, editMinute, setEditMinute, editOn, setEditOn,
+    editOff, setEditOff, editNotes, setEditNotes, names, removeSub,
+  } = sub;
+
+  return (
+    <>
       <BlockTitle>
         Substitutions Logged{' '}
         <span className="font-normal text-gray-500 dark:text-gray-400">
-          ({match.subs.length})
+          ({sortedSubs.length})
         </span>
       </BlockTitle>
 
@@ -204,15 +239,15 @@ export default function SubstitutionsPanel({ onModalOpen }) {
         </Block>
       ) : (
         <List strong inset>
-          {sortedSubs.map((sub) => (
+          {sortedSubs.map((s) => (
             <ListItem
-              key={sub.id}
+              key={s.id}
               link
               chevron={false}
-              onClick={() => setPendingDelete(sub.id)}
-              media={<Badge className="!bg-red-500">{`${sub.minute}'`}</Badge>}
-              title={`${sub.on} on · ${sub.off} off`}
-              text={sub.notes || undefined}
+              onClick={() => setPendingDelete(s.id)}
+              media={<Badge className="!bg-red-500">{`${s.minute}'`}</Badge>}
+              title={`${s.on} on · ${s.off} off`}
+              text={s.notes || undefined}
             />
           ))}
         </List>
@@ -305,6 +340,17 @@ export default function SubstitutionsPanel({ onModalOpen }) {
           </Button>
         </Block>
       </Sheet>
+    </>
+  );
+}
+
+// Both halves in sequence, as the Players screen shows them.
+export default function SubstitutionsPanel({ onModalOpen }) {
+  const sub = useSubstitutions({ onModalOpen });
+  return (
+    <>
+      <SubstitutionForm sub={sub} />
+      <SubstitutionsLog sub={sub} />
     </>
   );
 }

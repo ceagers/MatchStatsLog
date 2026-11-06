@@ -5,7 +5,6 @@ import {
 } from 'konsta/react';
 import { useMatch, formatSavedAt, PERIOD_GREEN, PERIOD_RED } from '../store.jsx';
 import { showToast } from '../toast.jsx';
-import SubstitutionsPanel from '../components/SubstitutionsPanel.jsx';
 import LineupTimeline from '../components/LineupTimeline.jsx';
 import { Icon } from '../icons.js';
 import { haptic } from '../haptics.js';
@@ -25,13 +24,11 @@ export default function PlayersScreen({ onNext }) {
   const [editing, setEditing] = useState(false);
   const [pendingRemove, setPendingRemove] = useState(null);
   const [dragName, setDragName] = useState(null);
-  const [subModalOpen, setSubModalOpen] = useState(false);
   const dragRef = useRef(null);
 
   // Any open sheet, action sheet or dialog lifts this whole screen above the
   // fixed tab bar, so the popup and its backdrop cover it like a native modal.
-  const modalOpen =
-    addOpen || menuFor !== null || pendingRemove !== null || subModalOpen;
+  const modalOpen = addOpen || menuFor !== null || pendingRemove !== null;
 
   const savedRecord = savedMatches.find((r) => r.id === match.savedId) || null;
   const saveMatch = () => {
@@ -284,8 +281,6 @@ export default function PlayersScreen({ onNext }) {
         </List>
       )}
 
-      <SubstitutionsPanel onModalOpen={setSubModalOpen} />
-
       <LineupTimeline />
 
       <Block className="mt-6">
@@ -297,7 +292,7 @@ export default function PlayersScreen({ onNext }) {
             onNext();
           }}
         >
-          Go to Goal Logger
+          Go to In Game
         </Button>
       </Block>
 
