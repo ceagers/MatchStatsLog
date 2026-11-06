@@ -1,11 +1,13 @@
-// App-wide settings: light/dark appearance, accent colour, font, and the two
-// wallpaper photos. Every choice is remembered in localStorage and applied to
-// the page as classes and CSS variables, so it takes effect app-wide at once
-// and survives relaunches.
+// App-wide settings: light/dark appearance, accent colour, font, the team
+// name shown as a heading on the Squad screen, and the two wallpaper photos.
+// Every choice is remembered in localStorage and applied to the page as
+// classes and CSS variables, so it takes effect app-wide at once and
+// survives relaunches.
 
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 
 const KEYS = {
+  teamName: 'settings.teamName.v1',
   theme: 'settings.theme.v1',
   accent: 'settings.accent.v1',
   font: 'settings.font.v1',
@@ -88,6 +90,7 @@ function shade(hex, amt) {
 const SettingsContext = createContext(null);
 
 export function SettingsProvider({ children }) {
+  const [teamName, setTeamName] = useState(() => load(KEYS.teamName, ''));
   const [theme, setTheme] = useState(() => load(KEYS.theme, 'system'));
   const [accent, setAccent] = useState(() => load(KEYS.accent, 'blue'));
   const [font, setFont] = useState(() => load(KEYS.font, 'system'));
@@ -102,6 +105,7 @@ export function SettingsProvider({ children }) {
 
   // Mirror every choice into storage.
   useEffect(() => {
+    persist(KEYS.teamName, teamName);
     persist(KEYS.theme, theme);
     persist(KEYS.accent, accent);
     persist(KEYS.font, font);
@@ -109,7 +113,7 @@ export function SettingsProvider({ children }) {
     persist(KEYS.badgeImage, badgeImage);
     persist(KEYS.competitions, competitions);
     persist(KEYS.matchTypes, matchTypes);
-  }, [theme, accent, font, homeImage, badgeImage, competitions, matchTypes]);
+  }, [teamName, theme, accent, font, homeImage, badgeImage, competitions, matchTypes]);
 
   // Light/dark: 'system' follows the phone, the other two force it.
   useEffect(() => {
@@ -144,6 +148,7 @@ export function SettingsProvider({ children }) {
 
   const value = useMemo(
     () => ({
+      teamName, setTeamName,
       theme, setTheme,
       accent, setAccent,
       font, setFont,
@@ -152,7 +157,7 @@ export function SettingsProvider({ children }) {
       competitions, setCompetitions,
       matchTypes, setMatchTypes,
     }),
-    [theme, accent, font, homeImage, badgeImage, competitions, matchTypes]
+    [teamName, theme, accent, font, homeImage, badgeImage, competitions, matchTypes]
   );
 
   return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>;

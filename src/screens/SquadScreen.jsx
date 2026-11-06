@@ -13,6 +13,7 @@ import {
   Glass, Dialog, DialogButton,
 } from 'konsta/react';
 import { useMatch } from '../store.jsx';
+import { useSettings } from '../settings.jsx';
 import PlayerTotals from '../components/PlayerTotals.jsx';
 import PlayerSeasonScreen from './PlayerSeasonScreen.jsx';
 import ExportSheet from '../components/ExportSheet.jsx';
@@ -31,6 +32,7 @@ export default function SquadScreen() {
     setPlayerDisplayName,
     setPlayerSquadNumber,
   } = useMatch();
+  const { teamName } = useSettings();
 
   const [editing, setEditing] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
@@ -142,6 +144,23 @@ export default function SquadScreen() {
       colors={{ bgIos: 'bg-transparent' }}
       className={`relative pb-safe-24 ${modalOpen ? 'z-40' : 'z-10'}`}
     >
+      {/* The two headings above the navbar row the Edit control sits in —
+          the app name, then the team name picked up from the Team Name
+          field, the first option in Settings. Both centred; an unset team
+          name shows a muted prompt instead. */}
+      <div className="px-5 pt-safe text-center">
+        <h1 className="text-[15px] font-bold leading-tight tracking-tight">
+          MatchStatsLog
+        </h1>
+        <h2
+          className={`mt-0.5 truncate text-[22px] font-semibold ${
+            teamName ? '' : 'text-gray-500 dark:text-gray-400'
+          }`}
+        >
+          {teamName || 'Team name not set'}
+        </h2>
+      </div>
+
       <Navbar
         title="Squad"
         large

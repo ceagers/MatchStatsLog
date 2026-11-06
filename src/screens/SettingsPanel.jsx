@@ -137,6 +137,7 @@ function EditableListSection({ title, footer, addLabel, values, onChange }) {
 
 export default function SettingsPanel({ opened, onClose }) {
   const {
+    teamName, setTeamName,
     theme, setTheme,
     accent, setAccent,
     font, setFont,
@@ -172,6 +173,24 @@ export default function SettingsPanel({ opened, onClose }) {
           title="Settings"
           right={<Link navbar onClick={onClose}>Done</Link>}
         />
+
+        {/* The team name is the first option in Settings — it feeds the
+            heading the Squad screen shows under the app title. */}
+        <BlockTitle>Team Name</BlockTitle>
+        <List strong inset>
+          <ListInput
+            label="Team Name"
+            type="text"
+            placeholder="e.g. Riverside United"
+            value={teamName}
+            onInput={(e) => setTeamName(e.target.value)}
+            clearButton
+            onClear={() => setTeamName('')}
+          />
+        </List>
+        <BlockFooter className="pt-1 text-[13px] text-gray-500 dark:text-gray-400">
+          Shown as the heading on the Squad screen.
+        </BlockFooter>
 
         <BlockTitle>Appearance</BlockTitle>
         <Block strong inset>
