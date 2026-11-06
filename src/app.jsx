@@ -24,9 +24,9 @@ import UtilitiesScreen from './screens/UtilitiesScreen.jsx';
 const TABS = [
   { id: 'squad', label: 'Squad', icon: 'shirt' },
   { id: 'home', label: 'Home', icon: 'house' },
-  { id: 'info', label: 'Match', icon: 'clipboard-list' },
-  { id: 'timer', label: 'Timer', icon: 'timer' },
+  { id: 'info', label: 'Match Info', icon: 'clipboard-list' },
   { id: 'players', label: 'Players', icon: 'users' },
+  { id: 'timer', label: 'Timer', icon: 'timer' },
   { id: 'goals', label: 'Goals', icon: 'target' },
   { id: 'season', label: 'Season', icon: 'trophy' },
   { id: 'utilities', label: 'Utilities', icon: 'wrench' },
