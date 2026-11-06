@@ -114,11 +114,15 @@ export default function PlayerSeasonScreen({ season, playerName, matches, onBack
       };
     });
 
-    const stats = computeSeasonStats(recs);
+    const stats = computeSeasonStats(recs, {
+      cutoff: season.minutesCutoff,
+      cutoffRecords: fullRecs,
+      overrides: season.minutesOverrides,
+    });
     const totals =
       stats.players.find((p) => p.name === playerName) || BLANK_TOTALS;
     return { rows: matchRows, me: totals };
-  }, [matches, playerName, compFilter]);
+  }, [matches, playerName, compFilter, season.minutesCutoff, season.minutesOverrides]);
 
   // The division options the season's matches actually use, ordered as the
   // divisions are listed in Settings; values missing from that list follow
@@ -313,6 +317,15 @@ export default function PlayerSeasonScreen({ season, playerName, matches, onBack
         match's length, counted for matches they were available for. A dash
         means the match carries no data for that column — the squad grid was
         never marked, or there is no match time to measure against.
+        {season.minutesCutoff > 0
+          ? ` The oldest ${season.minutesCutoff} game${
+              season.minutesCutoff === 1 ? '' : 's'
+            } (date played order) are excluded from Minutes and %${
+              Object.keys(season.minutesOverrides || {}).length
+                ? ', with the imported percentages folded back in where the spreadsheet covers them'
+                : ''
+            }.`
+          : ''}
       </Block>
 
       <BlockTitle className="mt-2">Export</BlockTitle>

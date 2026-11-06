@@ -2,7 +2,7 @@
 // season totals counted up from them. Matches can be selected and moved to
 // another season; the season itself can be set current, renamed or deleted.
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import {
   Page, Navbar, NavbarBackLink, Block, BlockTitle, List, ListItem, ListButton,
   Button, Link, Sheet, ListInput, Segmented, SegmentedButton, Dialog,
@@ -18,6 +18,7 @@ import ExportSheet from '../components/ExportSheet.jsx';
 import PhotosSheet from '../components/PhotosSheet.jsx';
 import { buildSeasonPhotos } from '../photos.js';
 import { seasonSquadCsv, seasonSquadFileName } from '../export.js';
+import { parseMinutesCsv } from '../bulkimport.js';
 import { Icon } from '../icons.js';
 import { haptic } from '../haptics.js';
 import { showToast } from '../toast.jsx';
@@ -607,6 +608,8 @@ export default function SeasonDetailScreen({ season, onNavigate, onBack }) {
 // player's row to open their own match-by-match screen.
 function PlayerTotals({ season, matches, onOpenPlayer, onExport, onPhotos }) {
   const { competitions } = useSettings();
+  const { updateSeason } = useMatch();
+  const minutesInputRef = useRef(null);
   // Division filter: '__all' counts every game, a value counts only those
   // games. All is the default.
   const [compFilter, setCompFilter] = useState('__all');
@@ -645,7 +648,63 @@ function PlayerTotals({ season, matches, onOpenPlayer, onExport, onPhotos }) {
             r.match.competition.trim() === compFilter
         );
 
-  const { players, matchesCounted } = computeSeasonStats(filtered);
+  const { players, matchesCounted } = computeSeasonStats(filtered, {
+    cutoff: season.minutesCutoff,
+    cutoffRecords: matches,
+    overrides: season.minutesOverrides,
+  });
+
+  // The season's own minutes reliability, shown under the table and used in
+  // the explanation above it.
+  const overrideCount = Object.keys(season.minutesOverrides || {}).length;
+  const cutoffNote =
+    season.minutesCutoff > 0
+      ? ` The oldest ${season.minutesCutoff} game${season.minutesCutoff === 1 ? '' : 's'} ` +
+        `(date played order) are excluded from Minutes and %` +
+        (overrideCount
+          ? ', with the imported percentages folded back in for the players they cover'
+          : '') +
+        '.'
+      : '';
+
+  // The coach's spreadsheet of Player, Games Played and Total % for the
+  // excluded oldest games. Names that match nobody are kept but flagged in
+  // the toast, so a typo is visible rather than silently dropped.
+  const onMinutesFile = async (event) => {
+    const file = event.target.files && event.target.files[0];
+    event.target.value = ''; // so picking the same file again still fires
+    if (!file) return;
+    const parsed = parseMinutesCsv(await file.text());
+    if (!parsed.ok) {
+      haptic('removed');
+      showToast(parsed.error);
+      return;
+    }
+    const squadNames = new Set();
+    matches.forEach((r) => {
+      const ps = r.match && Array.isArray(r.match.players) ? r.match.players : [];
+      ps.forEach((p) => squadNames.add(p.name));
+    });
+    const unknown = parsed.entries
+      .map((e) => e.name)
+      .filter((n) => !squadNames.has(n));
+    updateSeason(season.id, {
+      minutesOverrides: Object.fromEntries(
+        parsed.entries.map((e) => [e.name, { games: e.games, pct: e.pct }])
+      ),
+    });
+    haptic('archived');
+    const bits = [
+      `Imported percentages for ${parsed.entries.length} player${
+        parsed.entries.length === 1 ? '' : 's'
+      }`,
+    ];
+    if (unknown.length) {
+      bits.push(`not in this season's squads: ${unknown.join(', ')}`);
+    }
+    parsed.warnings.forEach((w) => bits.push(w));
+    showToast(bits.join(' · '));
+  };
 
   const cols = [
     { key: 'name', label: 'Player', w: 'min-w-0 flex-1' },
@@ -816,8 +875,63 @@ function PlayerTotals({ season, matches, onOpenPlayer, onExport, onPhotos }) {
         squad grid carries no appearance data and is left out of those counts;
         goals and awards logged in it still count. Tap a column title to sort
         the table; tap again to flip the order. Tap a player's row to see their
-        match-by-match season.
+        match-by-match season.{cutoffNote}
       </Block>
+
+      <BlockTitle className="mt-2">Minutes Reliability</BlockTitle>
+      <List strong inset>
+        <ListInput
+          label="Excluded oldest games"
+          type="number"
+          value={season.minutesCutoff > 0 ? String(season.minutesCutoff) : ''}
+          placeholder="0"
+          onInput={(e) => {
+            const n = Math.max(
+              0,
+              Math.min(999, Math.round(Number(e.target.value) || 0))
+            );
+            updateSeason(season.id, { minutesCutoff: n });
+          }}
+        />
+        <ListButton
+          onClick={() => {
+            haptic('tick');
+            if (minutesInputRef.current) minutesInputRef.current.click();
+          }}
+        >
+          <span className="inline-flex items-center gap-2">
+            <Icon name="file-spreadsheet" size={20} />
+            Import Percentages Spreadsheet
+          </span>
+        </ListButton>
+        {overrideCount > 0 && (
+          <ListButton
+            onClick={() => {
+              haptic('removed');
+              updateSeason(season.id, { minutesOverrides: {} });
+              showToast('Imported percentages cleared');
+            }}
+          >
+            Clear Imported Percentages ({overrideCount})
+          </ListButton>
+        )}
+      </List>
+      <Block className="!mt-1 text-[12px] leading-relaxed text-gray-500 dark:text-gray-400">
+        The season's first games — in date played order, the number above —
+        carry minutes the app counted wrongly. They drop out of Minutes and %
+        for every player. A spreadsheet of Player, Games Played and Total %
+        gives each player's true percentage across those games; its minutes
+        are folded back into the season totals alongside the games the app
+        still counts, and the % column shows the combined share of total
+        match time.
+      </Block>
+      <input
+        ref={minutesInputRef}
+        type="file"
+        accept=".csv,text/csv,text/comma-separated-values,text/plain"
+        className="hidden"
+        onChange={onMinutesFile}
+      />
 
       <BlockTitle className="mt-2">Export</BlockTitle>
       <List strong inset>

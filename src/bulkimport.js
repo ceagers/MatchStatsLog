@@ -410,3 +410,88 @@ export function bulkMatchesCsv(matches) {
 
   return `${BOM}${rows.join('\r\n')}\r\n`;
 }
+
+
+// --- Minutes spreadsheet import ----------------------------------------------
+// A small per-player spreadsheet the coach keeps outside the app — one row
+// per player, covering the games whose minutes the app's own log got wrong:
+//
+//   Player,Games Played,Total %
+//
+//  - Total % is the player's minutes on the pitch across those games as a
+//    share of their match time there. "72%", "72" and "0.72" all read as 72.
+//  - Games Played stands in for the missing match time when the app has no
+//    measurable length for any of the excluded games (no clock and no game
+//    length set), where it is multiplied by the average game length.
+//  - Rows whose percentage can't be read are skipped with a warning; rows
+//    with a name but no games column still import (games 0).
+//
+// parseMinutesCsv never throws: it returns { ok: true, entries, warnings } or
+// { ok: false, error }. Entries are { name, games, pct } with pct 0-100.
+export function parseMinutesCsv(text) {
+  const fail = (error) => ({ ok: false, error });
+  if (typeof text !== 'string' || !text.trim()) {
+    return fail('That file could not be read.');
+  }
+
+  const rows = parseCsvRows(text.replace(/^\uFEFF/, ''))
+    .map((row) => row.map((f) => f.trim()))
+    .filter((row) => row.some((f) => f !== ''));
+  if (!rows.length) return fail('That file holds no rows.');
+
+  // A header row is recognised by a Player-ish column title together with a
+  // games or % title; the columns are then picked up wherever they sit.
+  // Without one, Player, Games Played, Total % in that order is assumed.
+  let nameCol = 0;
+  let gamesCol = 1;
+  let pctCol = 2;
+  let start = 0;
+  const head = rows[0].map((f) => f.toLowerCase());
+  const isPlayer = (f) => f === 'player' || f === 'players' || f === 'name';
+  const isGames = (f) => f.startsWith('games') || f === 'gp' || f === 'played';
+  const isPct = (f) =>
+    f.includes('%') || f.includes('pct') || f.includes('percent') ||
+    f.includes('total');
+  if (head.some(isPlayer) && (head.some(isGames) || head.some(isPct))) {
+    nameCol = head.findIndex(isPlayer);
+    gamesCol = head.findIndex(isGames);
+    pctCol = head.findIndex(isPct);
+    start = 1;
+  }
+
+  const entries = [];
+  const warnings = [];
+  rows.slice(start).forEach((row, i) => {
+    const name = (row[nameCol] || '').trim();
+    if (!name) {
+      if (row.some((f) => f !== '')) {
+        warnings.push(`Row ${i + start + 1}: no player name — skipped.`);
+      }
+      return;
+    }
+    const gamesText = gamesCol >= 0 ? row[gamesCol] || '' : '';
+    const games = Math.max(
+      0,
+      Math.round(Number(gamesText.replace(/[^0-9.]/g, '')) || 0)
+    );
+    const pctText = pctCol >= 0 ? row[pctCol] || '' : '';
+    let pct = NaN;
+    if (pctText) {
+      const hadPercent = pctText.includes('%');
+      const n = Number(pctText.replace(/[^0-9.]/g, ''));
+      if (Number.isFinite(n)) pct = hadPercent || n > 1 ? n : n * 100;
+    }
+    if (!Number.isFinite(pct) || pct < 0 || pct > 100) {
+      warnings.push(`Row ${i + start + 1}: ${name} has no readable percentage — skipped.`);
+      return;
+    }
+    entries.push({ name, games, pct: Math.round(pct * 10) / 10 });
+  });
+
+  if (!entries.length) {
+    return fail(
+      'No readable rows found — the file needs Player, Games Played and Total % columns.'
+    );
+  }
+  return { ok: true, entries, warnings };
+}

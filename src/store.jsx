@@ -344,7 +344,19 @@ function loadMatch() {
 // every newly saved match lands in the current season.
 
 function makeSeason(name) {
-  return { id: crypto.randomUUID(), name, createdAt: new Date().toISOString() };
+  return {
+    id: crypto.randomUUID(),
+    name,
+    createdAt: new Date().toISOString(),
+    // How many of the season's oldest games — in date played order — carry
+    // minutes the app counted wrongly. Their minutes and % are left out of
+    // the season totals; an imported percentage can stand in for them.
+    minutesCutoff: 0,
+    // Per-player percentages imported from the coach's spreadsheet — name ->
+    // { games, pct } — standing in for the app's own minutes over those
+    // excluded games.
+    minutesOverrides: {},
+  };
 }
 
 function loadSeasonStore() {
@@ -362,6 +374,15 @@ function loadSeasonStore() {
             name: typeof s.name === 'string' && s.name.trim() ? s.name : 'Season',
             createdAt:
               typeof s.createdAt === 'string' ? s.createdAt : new Date().toISOString(),
+            minutesCutoff: Number.isFinite(s.minutesCutoff)
+              ? Math.max(0, Math.round(s.minutesCutoff))
+              : 0,
+            minutesOverrides:
+              s.minutesOverrides &&
+              typeof s.minutesOverrides === 'object' &&
+              !Array.isArray(s.minutesOverrides)
+                ? s.minutesOverrides
+                : {},
           }));
         if (typeof parsed.currentId === 'string') currentId = parsed.currentId;
       }
@@ -485,6 +506,14 @@ export function MatchProvider({ children }) {
     setSeasons((list) => list.map((s) => (s.id === id ? { ...s, name } : s)));
   };
 
+  // Change a season's own settings — the minutes cutoff and the imported
+  // percentages live beside its name.
+  const updateSeason = (id, patch) => {
+    setSeasons((list) =>
+      list.map((s) => (s.id === id ? { ...s, ...patch } : s))
+    );
+  };
+
   // A season still holding matches cannot be deleted — its records would be
   // orphaned. Move or delete its matches first.
   const deleteSeason = (id) => {
@@ -514,6 +543,7 @@ export function MatchProvider({ children }) {
     addSeason,
     setCurrentSeason,
     renameSeason,
+    updateSeason,
     deleteSeason,
     moveMatchesToSeason,
     homeViewId,
@@ -907,6 +937,20 @@ export function potmAvailableNames(match) {
     .map((p) => p.name);
 }
 
+// Order key for a saved match's date played: ISO dates parse directly; a
+// dd/mm/yyyy fallback keeps older records ordering correctly too. Undated
+// matches sit last, so they are never picked as a season's oldest games.
+function matchDateKey(date) {
+  if (typeof date !== 'string' || !date.trim()) return Infinity;
+  const t = new Date(date).getTime();
+  if (!Number.isNaN(t)) return t;
+  const parts = /^(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})$/.exec(date.trim());
+  if (!parts) return Infinity;
+  const year =
+    parts[3].length === 2 ? 2000 + Number(parts[3]) : Number(parts[3]);
+  return new Date(year, Number(parts[2]) - 1, Number(parts[1])).getTime();
+}
+
 // --- Season totals -----------------------------------------------------------
 // Per-player roll-up across every saved match in a season. A green Period 1
 // mark is a start, red is on the bench (still a game played), and no colour
@@ -915,7 +959,51 @@ export function potmAvailableNames(match) {
 // minutes counts — goals logged in it still count. Percentage played is the
 // player's minutes against the match time of only the matches they were
 // available for (started or benched), not every match in the season.
-export function computeSeasonStats(records) {
+//
+// Minutes can carry a reliability cutoff and imported percentages, passed in
+// as options:
+//
+//  - cutoff: how many of the season's oldest games (date played order) have
+//    minutes the app counted wrongly. Those games drop out of the running
+//    minutes and % entirely — for every player — but their match time is
+//    tallied aside per player so an imported percentage can be turned back
+//    into minutes.
+//  - cutoffRecords: the full, unfiltered season list the cutoff count is
+//    taken over, so a division filter doesn't change which games the count
+//    covers. Left out, the records themselves are used.
+//  - overrides: name -> { games, pct } from the coach's spreadsheet, where
+//    pct is the player's true minutes as a share of their match time across
+//    the excluded games. Those minutes are folded back in, so only players
+//    the spreadsheet covers get their excluded games counted; everyone else
+//    simply has those games discounted.
+export function computeSeasonStats(records, options = {}) {
+  const cutoffCount = Math.max(0, Math.round(Number(options.cutoff) || 0));
+  const overrides =
+    options.overrides &&
+    typeof options.overrides === 'object' &&
+    !Array.isArray(options.overrides)
+      ? options.overrides
+      : {};
+
+  // The season's oldest games, by date played. ISO dates parse directly; a
+  // dd/mm/yyyy fallback keeps older records ordering correctly too, and
+  // undated matches sit last so they are never picked as the oldest.
+  const cutoffIds = new Set();
+  if (cutoffCount > 0) {
+    (Array.isArray(options.cutoffRecords) && options.cutoffRecords.length
+      ? options.cutoffRecords
+      : Array.isArray(records)
+        ? records
+        : []
+    )
+      .filter((r) => r && r.match)
+      .sort(
+        (a, b) => matchDateKey(a.match.date) - matchDateKey(b.match.date)
+      )
+      .slice(0, cutoffCount)
+      .forEach((r) => cutoffIds.add(r.id));
+  }
+
   const blank = () => ({
     played: 0,
     starts: 0,
@@ -925,6 +1013,9 @@ export function computeSeasonStats(records) {
     potm: 0,
     minutes: 0,
     teamMinutes: 0,
+    // Match time from the excluded games this player was available for —
+    // the denominator an imported percentage is applied against.
+    cutoffTeamMinutes: 0,
   });
 
   const totals = new Map();
@@ -940,11 +1031,16 @@ export function computeSeasonStats(records) {
   };
 
   let matchesCounted = 0;
+  // Match time across the excluded games and how many of them carry one —
+  // the average stands in for a player the squad grids never marked there.
+  let cutoffLengthSum = 0;
+  let cutoffTimed = 0;
 
   (Array.isArray(records) ? records : []).forEach((record) => {
     const match = record && record.match;
     if (!match) return;
     const players = Array.isArray(match.players) ? match.players : [];
+    const excluded = cutoffIds.has(record.id);
 
     players.forEach((p) => ensure(p.name));
     players.forEach((p) => {
@@ -996,23 +1092,53 @@ export function computeSeasonStats(records) {
           ? match.gameLength
           : 0;
     if (matchMinutes > 0) {
+      if (excluded) {
+        cutoffLengthSum += matchMinutes;
+        cutoffTimed += 1;
+      }
       const { minutes } = computePlayerMinutes(match);
       players.forEach((p) => {
         const t = totals.get(p.name);
         const first = Array.isArray(p.periods) ? p.periods[0] : PERIOD_UNSET;
-        t.minutes += minutes.get(p.name) || 0;
-        // The percentage denominator counts only the matches this player was
-        // available for — started or benched — not every match logged.
-        if (first !== PERIOD_UNSET) t.teamMinutes += matchMinutes;
+        if (excluded) {
+          // An excluded game adds nothing to the running totals — but its
+          // match time is kept aside for the imported percentages.
+          if (first !== PERIOD_UNSET) t.cutoffTeamMinutes += matchMinutes;
+        } else {
+          t.minutes += minutes.get(p.name) || 0;
+          // The percentage denominator counts only the matches this player was
+          // available for — started or benched — not every match logged.
+          if (first !== PERIOD_UNSET) t.teamMinutes += matchMinutes;
+        }
       });
     }
   });
 
+  const avgCutoffLength = cutoffTimed > 0 ? cutoffLengthSum / cutoffTimed : 0;
+
   const players = order.map((name) => {
     const t = totals.get(name);
+    let minutes = t.minutes;
+    let denominator = t.teamMinutes;
+    if (cutoffCount > 0) {
+      const override = overrides[name];
+      const pct = Number(override && override.pct);
+      if (Number.isFinite(pct) && pct >= 0 && pct <= 100) {
+        // The player's match time across the excluded games: the app's own
+        // tally when their squad grids were marked there, otherwise the
+        // spreadsheet's games count against the average excluded game length.
+        const base =
+          t.cutoffTeamMinutes > 0
+            ? t.cutoffTeamMinutes
+            : Math.max(0, Math.round(Number(override && override.games) || 0)) *
+              avgCutoffLength;
+        minutes += Math.round((pct / 100) * base);
+        denominator += base;
+      }
+    }
     const percentage =
-      t.teamMinutes > 0 ? Math.round((100 * t.minutes) / t.teamMinutes) : null;
-    return { name, ...t, percentage };
+      denominator > 0 ? Math.round((100 * minutes) / denominator) : null;
+    return { name, ...t, minutes, percentage };
   });
   return { players, matchesCounted };
 }
