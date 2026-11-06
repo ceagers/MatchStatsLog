@@ -29,6 +29,7 @@ export default function SquadScreen() {
     removePlayer,
     movePlayer,
     setPlayerDisplayName,
+    setPlayerSquadNumber,
   } = useMatch();
 
   const [editing, setEditing] = useState(false);
@@ -163,7 +164,7 @@ export default function SquadScreen() {
 
       <Block className="!mb-2 text-[13px] text-gray-500 dark:text-gray-400">
         {editing
-          ? "Drag the grip to re-sort the squad. Type each player's full name in the Name field. Tap the red button to remove a player."
+          ? "Drag the grip to re-sort the squad. Type each player's full name and squad number in the fields. Tap the red button to remove a player."
           : 'The constant squad every part of the app works from. Changes made here — adding, removing, renaming or re-sorting a player — pull through to the Players tab, the goal logger and the substitution logger. Resetting a match never clears this screen.'}
       </Block>
 
@@ -242,32 +243,57 @@ export default function SquadScreen() {
                       Remove
                     </button>
                   </div>
-                  <div className="ml-8">
-                    <span className="text-[11px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
-                      Name
-                    </span>
-                    <input
-                      type="text"
-                      value={player.displayName || ''}
-                      placeholder="Full name"
-                      onChange={(e) => setPlayerDisplayName(player.name, e.target.value)}
-                      className="mt-0.5 w-full rounded-lg border border-black/10 bg-white px-3 py-1.5
-                                 text-[15px] text-black transition-colors duration-150
-                                 dark:border-white/15 dark:bg-white/10 dark:text-white"
-                    />
+                  <div className="ml-8 flex items-end gap-2">
+                    <div className="min-w-0 flex-1">
+                      <span className="text-[11px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                        Name
+                      </span>
+                      <input
+                        type="text"
+                        value={player.displayName || ''}
+                        placeholder="Full name"
+                        onChange={(e) => setPlayerDisplayName(player.name, e.target.value)}
+                        className="mt-0.5 w-full rounded-lg border border-black/10 bg-white px-3 py-1.5
+                                   text-[15px] text-black transition-colors duration-150
+                                   dark:border-white/15 dark:bg-white/10 dark:text-white"
+                      />
+                    </div>
+                    <div className="w-20 shrink-0">
+                      <span className="text-[11px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                        Squad No.
+                      </span>
+                      <input
+                        type="text"
+                        value={player.squadNumber || ''}
+                        placeholder="e.g. 7"
+                        onChange={(e) => setPlayerSquadNumber(player.name, e.target.value)}
+                        className="mt-0.5 w-full rounded-lg border border-black/10 bg-white px-3 py-1.5
+                                   text-[15px] text-black transition-colors duration-150
+                                   dark:border-white/15 dark:bg-white/10 dark:text-white"
+                      />
+                    </div>
                   </div>
                 </div>
               ) : (
-                <div className="min-w-0 flex-1 py-0.5">
-                  <span className="block truncate text-[15px] font-semibold">
-                    {player.name}
-                  </span>
-                  {player.displayName ? (
-                    <span className="block truncate text-[12px] text-gray-500 dark:text-gray-400">
-                      {player.displayName}
+                <>
+                  <div className="min-w-0 flex-1 py-0.5">
+                    <span className="block truncate text-[15px] font-semibold">
+                      {player.name}
+                    </span>
+                    {player.displayName ? (
+                      <span className="block truncate text-[12px] text-gray-500 dark:text-gray-400">
+                        {player.displayName}
+                      </span>
+                    ) : null}
+                  </div>
+                  {player.squadNumber ? (
+                    <span className="shrink-0 rounded-md bg-black/5 px-2 py-0.5
+                                    text-[12px] font-semibold tabular-nums
+                                    dark:bg-white/10">
+                      {player.squadNumber}
                     </span>
                   ) : null}
-                </div>
+                </>
               )}
             </li>
           ))}
@@ -285,19 +311,23 @@ export default function SquadScreen() {
               {currentSeason.name}
             </span>
           </BlockTitle>
-          <PlayerTotals
-            season={currentSeason}
-            matches={seasonMatches}
-            onOpenPlayer={setOpenPlayer}
-            onExport={(data) => {
-              setExportData(data);
-              setExportOpen(true);
-            }}
-            onPhotos={(list) => {
-              setPhotosData(list);
-              setPhotosOpen(true);
-            }}
-          />
+          {/* A little breathing room above the division tabs, so they sit
+              clear of the title and the navbar above them. */}
+          <div className="pt-3">
+            <PlayerTotals
+              season={currentSeason}
+              matches={seasonMatches}
+              onOpenPlayer={setOpenPlayer}
+              onExport={(data) => {
+                setExportData(data);
+                setExportOpen(true);
+              }}
+              onPhotos={(list) => {
+                setPhotosData(list);
+                setPhotosOpen(true);
+              }}
+            />
+          </div>
         </>
       )}
 

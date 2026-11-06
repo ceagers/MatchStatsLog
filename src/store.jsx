@@ -29,7 +29,14 @@ function todayISO() {
 }
 
 function makePlayer(name) {
-  return { name, displayName: '', periods: [0, 0, 0, 0, 0, 0, 0, 0], goals: 0, assists: 0 };
+  return {
+    name,
+    displayName: '',
+    squadNumber: '',
+    periods: [0, 0, 0, 0, 0, 0, 0, 0],
+    goals: 0,
+    assists: 0,
+  };
 }
 
 // --- The match clock -------------------------------------------------------
@@ -207,6 +214,7 @@ function normalise(raw) {
     players.push({
       name,
       displayName: typeof p.displayName === 'string' ? p.displayName : '',
+      squadNumber: typeof p.squadNumber === 'string' ? p.squadNumber : '',
       periods: Array.from({ length: 8 }, (_, i) => toPeriodState(periods[i])),
       goals: Number.isFinite(p.goals) ? p.goals : 0,
       assists: Number.isFinite(p.assists) ? p.assists : 0,
@@ -640,6 +648,19 @@ export function MatchProvider({ children }) {
         ),
       })),
 
+    // The player's squad number, typed on the Squad tab. Free text like
+    // the full name — it carries no behaviour, it just follows the
+    // player wherever the roster is shown, and a match reset keeps it.
+    setPlayerSquadNumber: (name, raw) =>
+      setMatch((m) => ({
+        ...m,
+        players: m.players.map((p) =>
+          p.name === name
+            ? { ...p, squadNumber: typeof raw === 'string' ? raw : '' }
+            : p
+        ),
+      })),
+
     // Drag-to-re-sort on the squad screen: lift a player out of one slot and
     // drop them into another. Everything that reads the squad order — the goal
     // and substitution pickers, the saved match — follows it.
@@ -731,14 +752,16 @@ export function MatchProvider({ children }) {
       })),
 
     // Keep whatever squad the user has built up — the names and the full
-    // names typed on the Squad tab's Edit screen — and clear everything else.
-    // The Squad tab is constant: a match reset never touches it.
+    // names and squad numbers typed on the Squad tab's Edit screen — and
+    // clear everything else. The Squad tab is constant: a match reset
+    // never touches it.
     resetMatch: () =>
       setMatch((m) => ({
         ...makeMatch(),
         players: m.players.map((p) => ({
           ...makePlayer(p.name),
           displayName: typeof p.displayName === 'string' ? p.displayName : '',
+          squadNumber: typeof p.squadNumber === 'string' ? p.squadNumber : '',
         })),
       })),
 
