@@ -10,6 +10,7 @@ import { useSettings } from './settings.jsx';
 import { Icon } from './icons.js';
 import { haptic } from './haptics.js';
 import { ToastHost } from './toast.jsx';
+import SquadScreen from './screens/SquadScreen.jsx';
 import HomeScreen from './screens/HomeScreen.jsx';
 import MatchInfoScreen from './screens/MatchInfoScreen.jsx';
 import TimerScreen from './screens/TimerScreen.jsx';
@@ -18,8 +19,10 @@ import GoalLoggerScreen from './screens/GoalLoggerScreen.jsx';
 import SeasonScreen from './screens/SeasonScreen.jsx';
 import UtilitiesScreen from './screens/UtilitiesScreen.jsx';
 
-// Home first, then the screens in the order the coach walks them on the day.
+// The constant Squad screen first, then Home and the screens in the order
+// the coach walks them on the day.
 const TABS = [
+  { id: 'squad', label: 'Squad', icon: 'shirt' },
   { id: 'home', label: 'Home', icon: 'house' },
   { id: 'info', label: 'Match', icon: 'clipboard-list' },
   { id: 'timer', label: 'Timer', icon: 'timer' },
@@ -146,6 +149,7 @@ export default function AppScreen() {
         onPointerCancel={onPointerCancel}
         onClickCapture={onClickCapture}
       >
+        {tab === 'squad' && <SquadScreen />}
         {tab === 'home' && <HomeScreen onNavigate={setTab} />}
         {tab === 'info' && <MatchInfoScreen onNext={() => setTab('timer')} />}
         {tab === 'timer' && <TimerScreen onNext={() => setTab('players')} />}

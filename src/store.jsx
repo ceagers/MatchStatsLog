@@ -730,9 +730,17 @@ export function MatchProvider({ children }) {
         subs: m.subs.map((s) => (s.id === id ? { ...s, ...patch } : s)),
       })),
 
-    // Keep whatever squad the user has built up; clear everything else.
+    // Keep whatever squad the user has built up — the names and the full
+    // names typed on the Squad tab's Edit screen — and clear everything else.
+    // The Squad tab is constant: a match reset never touches it.
     resetMatch: () =>
-      setMatch((m) => ({ ...makeMatch(), players: m.players.map((p) => makePlayer(p.name)) })),
+      setMatch((m) => ({
+        ...makeMatch(),
+        players: m.players.map((p) => ({
+          ...makePlayer(p.name),
+          displayName: typeof p.displayName === 'string' ? p.displayName : '',
+        })),
+      })),
 
     startClock: () =>
       setMatch((m) =>
