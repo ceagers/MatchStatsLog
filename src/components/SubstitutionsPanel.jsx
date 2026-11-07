@@ -10,7 +10,7 @@
 // state hook, so they can be laid out apart — the In Game screen slots the
 // logged goals between them — or together, as the Players screen shows them.
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Block, BlockTitle, List, ListItem, ListInput, Button, Toggle,
   Actions, ActionsGroup, ActionsButton, ActionsLabel, Badge,
@@ -217,7 +217,8 @@ export function useSubstitutions({ onModalOpen } = {}) {
 }
 
 // The New Substitution form: clock readout, follow toggle, then the pickers —
-// five On and five Off, one pair per substitution made at the same moment.
+// On and Off interleaved, one On/Off pair per substitution made at the same
+// moment.
 export function SubstitutionForm({ sub }) {
   const {
     match, names, minute, setMinute, onVals, offVals, onErrors, offErrors,
@@ -298,8 +299,12 @@ export function SubstitutionForm({ sub }) {
               ))}
             </ListInput>
 
-            {Array.from({ length: SLOTS }, (_, i) => pickerRow('on', i))}
-            {Array.from({ length: SLOTS }, (_, i) => pickerRow('off', i))}
+            {Array.from({ length: SLOTS }, (_, i) => (
+              <Fragment key={i}>
+                {pickerRow('on', i)}
+                {pickerRow('off', i)}
+              </Fragment>
+            ))}
 
             <ListInput
               label="Notes"
