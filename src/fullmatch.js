@@ -77,7 +77,7 @@ function matchRows(match) {
       'Name', 'Display Name',
       'Period 1', 'Period 2', 'Period 3', 'Period 4',
       'Period 5', 'Period 6', 'Period 7', 'Period 8',
-      'Goals', 'Assists',
+      'Goals', 'Assists', 'Squad No.',
     ])
   );
   (match.players || []).forEach((p) => {
@@ -88,6 +88,7 @@ function matchRows(match) {
         ...(p.periods || []).map((s) => (s === PERIOD_GREEN ? 1 : s === PERIOD_RED ? 2 : 0)),
         p.goals || 0,
         p.assists || 0,
+        p.squadNumber || '',
       ])
     );
   });
@@ -249,6 +250,9 @@ function parseMatchBlock(rows) {
         }),
         goals: Math.max(0, Math.round(num(r[10]))),
         assists: Math.max(0, Math.round(num(r[11]))),
+        // Squad No. rides at the end of the row; files exported before it
+        // existed simply have nothing there.
+        squadNumber: str(r[12]),
       }))
       .filter((p) => p.name),
     goalTimes: goals.map((r, i) => ({

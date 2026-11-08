@@ -338,6 +338,51 @@ export function computePlayerMinutes(match) {
   return { source: 'none', fullTime: 0, minutes };
 }
 
+// The full names and squad numbers typed on the Squad tab belong to the
+// roster, not to any one match — the same constant squad a match reset
+// keeps. When a match is brought in from history or an import, its roster
+// is reconciled with the squad on the phone now: every player in the
+// incoming match keeps the full name and squad number the Squad tab holds
+// for them (the incoming values stand in only where the roster has none),
+// and squad members the incoming match doesn't list are carried over at
+// the end of the list, so nothing typed on the Squad tab is ever lost.
+function reconcileSquad(incomingPlayers, currentPlayers) {
+  const roster = new Map(
+    (Array.isArray(currentPlayers) ? currentPlayers : []).map((p) => [
+      (p.name || '').toLowerCase(),
+      p,
+    ])
+  );
+  const merged = (Array.isArray(incomingPlayers) ? incomingPlayers : []).map(
+    (p) => {
+      const known = roster.get((p.name || '').toLowerCase());
+      if (!known) return p;
+      return {
+        ...p,
+        displayName:
+          (typeof known.displayName === 'string' && known.displayName) ||
+          (typeof p.displayName === 'string' ? p.displayName : ''),
+        squadNumber:
+          (typeof known.squadNumber === 'string' && known.squadNumber) ||
+          (typeof p.squadNumber === 'string' ? p.squadNumber : ''),
+      };
+    }
+  );
+  const seen = new Set(
+    merged.map((p) => (p.name || '').toLowerCase())
+  );
+  (Array.isArray(currentPlayers) ? currentPlayers : []).forEach((p) => {
+    if (!p.name || seen.has(p.name.toLowerCase())) return;
+    seen.add(p.name.toLowerCase());
+    merged.push({
+      ...makePlayer(p.name),
+      displayName: typeof p.displayName === 'string' ? p.displayName : '',
+      squadNumber: typeof p.squadNumber === 'string' ? p.squadNumber : '',
+    });
+  });
+  return merged;
+}
+
 function loadMatch() {
   try {
     const raw = localStorage.getItem(STORE_KEY) || localStorage.getItem(LEGACY_KEY);
@@ -869,10 +914,19 @@ export function MatchProvider({ children }) {
       ),
 
     // Bring a saved match back as the live match, so it can be edited again.
+    // The squad's full names and squad numbers are reconciled with the roster
+    // on the phone now, so opening an older match never wipes them.
     restoreSavedMatch: (id) => {
       const record = savedMatches.find((r) => r.id === id);
       if (!record) return;
-      setMatch({ ...normalise(record.match), savedId: id });
+      setMatch((m) => {
+        const next = normalise(record.match);
+        return {
+          ...next,
+          players: reconcileSquad(next.players, m.players),
+          savedId: id,
+        };
+      });
     },
 
     // Bulk import from the simplified CSV routine: every match lands in
@@ -894,9 +948,18 @@ export function MatchProvider({ children }) {
 
     // A full round trip of the full-match export: everything — fixture, squad,
     // clock, goals and substitutions — is replaced by the imported match,
-    // which comes in unsaved so saving files it as a new record.
+    // which comes in unsaved so saving files it as a new record. The roster's
+    // full names and squad numbers are reconciled with the squad on the phone
+    // now, so an import never wipes them.
     importMatch: (incoming) =>
-      setMatch(() => ({ ...normalise(incoming), savedId: null })),
+      setMatch((m) => {
+        const next = normalise(incoming);
+        return {
+          ...next,
+          players: reconcileSquad(next.players, m.players),
+          savedId: null,
+        };
+      }),
   };
 
   return <MatchContext.Provider value={value}>{children}</MatchContext.Provider>;
