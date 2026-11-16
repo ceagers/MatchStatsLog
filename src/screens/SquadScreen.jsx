@@ -10,12 +10,13 @@
 import { useRef, useState } from 'react';
 import {
   Page, Navbar, Block, BlockTitle, List, ListInput, Button, Link, Sheet,
-  Glass, Dialog, DialogButton,
+  Glass, Dialog, DialogButton, Segmented, SegmentedButton,
 } from 'konsta/react';
 import { useMatch } from '../store.jsx';
 import { useSettings } from '../settings.jsx';
 import PlayerTotals from '../components/PlayerTotals.jsx';
 import PlayerSeasonScreen from './PlayerSeasonScreen.jsx';
+import TrainingTab from './TrainingTab.jsx';
 import ExportSheet from '../components/ExportSheet.jsx';
 import PhotosSheet from '../components/PhotosSheet.jsx';
 import { Icon } from '../icons.js';
@@ -35,6 +36,11 @@ export default function SquadScreen() {
   const { teamName } = useSettings();
 
   const [editing, setEditing] = useState(false);
+  // The screen's own tab: the squad roster, or the Training attendance pane.
+  const [pane, setPane] = useState('squad');
+  // True while the Training pane holds a sheet or dialog open — it lifts this
+  // whole screen above the fixed tab bar, exactly like the sheets below.
+  const [trainingModal, setTrainingModal] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [newName, setNewName] = useState('');
   const [pendingRemove, setPendingRemove] = useState(null);
@@ -51,7 +57,8 @@ export default function SquadScreen() {
 
   // Any open sheet or dialog lifts this whole screen above the fixed tab bar.
   const modalOpen =
-    addOpen || pendingRemove !== null || exportOpen || photosOpen;
+    addOpen || pendingRemove !== null || exportOpen || photosOpen ||
+    trainingModal;
 
   // The current season's saved matches, newest played date first — the same
   // feed the Season screen's Players tab counts its totals from. Match played
@@ -162,12 +169,12 @@ export default function SquadScreen() {
       </div>
 
       <Navbar
-        title="Squad"
+        title={pane === 'training' ? 'Training' : 'Squad'}
         large
         transparent
         className="top-0 sticky"
         left={
-          match.players.length > 0 ? (
+          pane === 'squad' && match.players.length > 0 ? (
             <Link
               navbar
               onClick={() => {
@@ -181,6 +188,37 @@ export default function SquadScreen() {
         }
       />
 
+      <div className="mx-4 mt-1 mb-1">
+        <Segmented strong rounded>
+          <SegmentedButton
+            strong
+            rounded
+            active={pane === 'squad'}
+            onClick={() => {
+              haptic('tick');
+              setPane('squad');
+            }}
+          >
+            Squad
+          </SegmentedButton>
+          <SegmentedButton
+            strong
+            rounded
+            active={pane === 'training'}
+            onClick={() => {
+              haptic('tick');
+              setPane('training');
+            }}
+          >
+            Training
+          </SegmentedButton>
+        </Segmented>
+      </div>
+
+      {pane === 'training' ? (
+        <TrainingTab onModalChange={setTrainingModal} />
+      ) : (
+      <>
       <Block className="!mb-2 text-[13px] text-gray-500 dark:text-gray-400">
         {editing
           ? "Drag the grip to re-sort the squad. Type each player's full name and squad number in the fields. Tap the red button to remove a player."
@@ -348,6 +386,9 @@ export default function SquadScreen() {
             />
           </div>
         </>
+      )}
+
+      </>
       )}
 
       <Sheet

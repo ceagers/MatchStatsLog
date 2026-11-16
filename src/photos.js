@@ -7,6 +7,7 @@
 
 import {
   formatDate, computePlayerMinutes, PERIOD_GREEN, PERIOD_RED,
+  TRAINING_Y, TRAINING_N,
 } from './store.jsx';
 
 const S = 3;            // drawn at 3x so photos stay sharp in Photos
@@ -645,8 +646,9 @@ export function buildSeasonPhotos(seasonName, division, matchesCounted, players)
 }
 
 // One player's season as two pictures: the totals, then the match-by-match
-// table (with the date under each opposition name).
-export function buildPlayerSeasonPhotos(seasonName, playerName, division, me, rows) {
+// table (with the date under each opposition name). trainingPct is the
+// Training % tile from the screen — null when no sessions are saved.
+export function buildPlayerSeasonPhotos(seasonName, playerName, division, me, rows, trainingPct = null) {
   const labelCy = 30;
   const cardY = labelCy + 13;
 
@@ -660,6 +662,7 @@ export function buildPlayerSeasonPhotos(seasonName, playerName, division, me, ro
     { label: 'POTM', value: me.potm },
     { label: 'Minutes', value: `${me.minutes}m` },
     { label: 'Played', value: me.percentage === null ? '—' : `${me.percentage}%` },
+    { label: 'Training', value: trainingPct === null ? '—' : `${trainingPct}%` },
   ];
   const gap = 8;
   const tileW = (W - 40 - 3 * gap) / 4;
@@ -781,4 +784,119 @@ export function buildPlayerSeasonPhotos(seasonName, playerName, division, me, ro
     ...p,
     dataUrl: p.canvas.toDataURL('image/png'),
   }));
+}
+
+// --- Training attendance -------------------------------------------------------
+// The Training tab's saved sessions as paginated pictures: each session shows
+// its date and every player with a Y (green), N (red) or not-marked (—)
+// value at the right edge. Player rows follow the squad's saved order, with
+// any names the sessions still carry but the squad no longer lists at the end.
+
+const SESSIONS_PER_PAGE = 3;
+const TRAIN_ROW_H = 26;
+
+export function buildTrainingPhotos(sessions, squadNames) {
+  const list = (Array.isArray(sessions) ? sessions : []).slice();
+  const key = (d) => {
+    const t = new Date(d).getTime();
+    return Number.isNaN(t) ? 0 : t;
+  };
+  list.sort((a, b) => key(b.date) - key(a.date));
+
+  const names = [];
+  (Array.isArray(squadNames) ? squadNames : []).forEach((n) => {
+    if (n && !names.includes(n)) names.push(n);
+  });
+  list.forEach((s) =>
+    Object.keys((s && s.attendance) || {}).forEach((n) => {
+      if (n && !names.includes(n)) names.push(n);
+    })
+  );
+
+  const pages = [];
+  for (let i = 0; i < list.length; i += SESSIONS_PER_PAGE) {
+    pages.push(list.slice(i, i + SESSIONS_PER_PAGE));
+  }
+  if (pages.length === 0) pages.push([]);
+
+  return pages.map((page, pi) => {
+    const labelCy = 30;
+    const cardY = labelCy + 13;
+    const empty = page.length === 0;
+    const sessionH = (last) =>
+      22 + 4 + (names.length ? names.length * TRAIN_ROW_H + 10 : 40) + (last ? 0 : 14);
+    const cardH = empty
+      ? 40
+      : page.reduce((n, _s, i) => n + sessionH(i === page.length - 1), 0);
+    const height = cardY + cardH + 46;
+    const { canvas, ctx } = makeCtx(height);
+
+    const title =
+      list.length === 0
+        ? 'Training Attendance'
+        : pages.length > 1
+        ? `Training Attendance (${list.length} sessions) · ${pi + 1} of ${pages.length}`
+        : `Training Attendance (${list.length} session${list.length === 1 ? '' : 's'})`;
+    sectionLabel(ctx, title, labelCy);
+
+    if (empty) {
+      card(ctx, cardY, 40);
+      ctx.font = font(14);
+      ctx.fillStyle = SECONDARY;
+      ctx.fillText('No training sessions saved yet.', 36, cardY + 20);
+    } else {
+      let y = cardY;
+      page.forEach((s, si) => {
+        const att = (s && s.attendance) || {};
+        const inCount = names.reduce(
+          (n, name) => n + (att[name] === TRAINING_Y ? 1 : 0),
+          0
+        );
+        ctx.font = font(15, 600);
+        ctx.fillStyle = TEXT;
+        ctx.fillText(formatDate(s.date), 36, y + 11);
+        ctx.font = font(13);
+        ctx.fillStyle = SECONDARY;
+        ctx.textAlign = 'right';
+        ctx.fillText(`${inCount} of ${names.length} in`, W - 36, y + 12);
+        ctx.textAlign = 'left';
+        y += 22 + 4;
+
+        const rowsH = names.length ? names.length * TRAIN_ROW_H + 10 : 40;
+        card(ctx, y, rowsH);
+        if (names.length === 0) {
+          ctx.font = font(14);
+          ctx.fillStyle = SECONDARY;
+          ctx.fillText('No players to mark yet.', 36, y + 20);
+        } else {
+          names.forEach((name, j) => {
+            const cy = y + 5 + 13 + j * TRAIN_ROW_H;
+            if (j > 0) hairline(ctx, 36, cy - 13, W - 72);
+            ctx.font = font(15, 600);
+            ctx.fillStyle = TEXT;
+            ctx.fillText(ellipsize(ctx, name, W - 130), 36, cy);
+            const v = att[name];
+            ctx.font = font(15, 600);
+            ctx.textAlign = 'right';
+            ctx.fillStyle =
+              v === TRAINING_Y ? GREEN : v === TRAINING_N ? RED : GREY;
+            ctx.fillText(
+              v === TRAINING_Y ? 'Y' : v === TRAINING_N ? 'N' : '—',
+              W - 36,
+              cy
+            );
+            ctx.textAlign = 'left';
+          });
+        }
+        y += rowsH + (si === page.length - 1 ? 0 : 14);
+      });
+    }
+
+    footer(ctx, height, ['MatchStatsLog', 'Training Attendance'].join('  ·  '));
+    return {
+      title: pages.length > 1 ? `Training Attendance (${pi + 1})` : 'Training Attendance',
+      name: pages.length > 1 ? `Training Attendance ${pi + 1}.png` : 'Training Attendance.png',
+      canvas,
+    };
+  });
 }

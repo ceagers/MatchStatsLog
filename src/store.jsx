@@ -13,6 +13,12 @@ export const PERIOD_UNSET = 0;
 export const PERIOD_GREEN = 1;
 export const PERIOD_RED = 2;
 
+// Training attendance marks: 0 = not marked, 1 = attended (Y, green),
+// 2 = absent (N, red). The same three-state discipline as the period grid.
+export const TRAINING_UNSET = 0;
+export const TRAINING_Y = 1;
+export const TRAINING_N = 2;
+
 // The POTM field's whole-squad value: the award went to everyone available
 // for the match.
 export const POTM_ALL = 'All';
@@ -21,8 +27,9 @@ const STORE_KEY = 'matchday.v2';
 const LEGACY_KEY = 'matchday.v1';
 const SAVED_KEY = 'matchday.saved.v1';
 const SEASONS_KEY = 'matchday.seasons.v1';
+const TRAINING_KEY = 'matchday.training.v1';
 
-function todayISO() {
+export function todayISO() {
   const now = new Date();
   const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
   return local.toISOString().slice(0, 10);
@@ -486,6 +493,88 @@ function loadSaved(seasonList, defaultSeasonId) {
   }
 }
 
+// --- Training attendance -----------------------------------------------------
+// Saved training sessions, keyed by their date: one record per day, holding
+// each player's Y/N mark. Static data — a match reset never touches it, the
+// same way the squad roster rides through.
+
+function loadTraining() {
+  try {
+    const raw = localStorage.getItem(TRAINING_KEY);
+    return raw ? normaliseTraining(JSON.parse(raw)) : [];
+  } catch {
+    return [];
+  }
+}
+
+function normaliseTraining(raw) {
+  if (!Array.isArray(raw)) return [];
+  const seen = new Set();
+  const out = [];
+  raw.forEach((s) => {
+    if (!s || typeof s !== 'object') return;
+    const date = typeof s.date === 'string' ? s.date.slice(0, 10) : '';
+    if (!date || seen.has(date)) return;
+    seen.add(date);
+    out.push({
+      id: typeof s.id === 'string' && s.id ? s.id : crypto.randomUUID(),
+      date,
+      attendance: cleanAttendance(s.attendance),
+    });
+  });
+  return out;
+}
+
+// Only genuine marks are kept — a stored map from an older shape can't
+// crash the launch, and unset values never travel.
+function cleanAttendance(raw) {
+  const clean = {};
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return clean;
+  Object.entries(raw).forEach(([name, v]) => {
+    if (typeof name === 'string' && name && (v === TRAINING_Y || v === TRAINING_N)) {
+      clean[name] = v;
+    }
+  });
+  return clean;
+}
+
+// Fold imported sessions into what is saved already, upserting by date:
+// an existing date keeps its record and its id, with the incoming marks
+// merged in per player — a player the file doesn't mention keeps their mark.
+function mergeTrainingRows(existing, rows) {
+  const next = (Array.isArray(existing) ? existing : []).map((s) => ({
+    ...s,
+    attendance: { ...s.attendance },
+  }));
+  (Array.isArray(rows) ? rows : []).forEach((row) => {
+    if (!row || typeof row.date !== 'string') return;
+    const date = row.date.slice(0, 10);
+    if (!date) return;
+    const at = next.findIndex((s) => s.date === date);
+    const incoming = cleanAttendance(row.attendance);
+    if (at >= 0) {
+      next[at] = { ...next[at], attendance: { ...next[at].attendance, ...incoming } };
+    } else {
+      next.push({ id: crypto.randomUUID(), date, attendance: incoming });
+    }
+  });
+  return next;
+}
+
+// One player's attendance record across every saved session: how many
+// sessions they were marked present for against the number of sessions
+// saved — the % the player profile shows. Unmarked players count as out.
+export function trainingAttendance(sessions, playerName) {
+  const list = Array.isArray(sessions) ? sessions : [];
+  const total = list.length;
+  if (!total) return { attended: 0, total: 0, pct: null };
+  const attended = list.reduce(
+    (n, s) => n + (s && s.attendance && s.attendance[playerName] === TRAINING_Y ? 1 : 0),
+    0
+  );
+  return { attended, total, pct: Math.round((100 * attended) / total) };
+}
+
 const MatchContext = createContext(null);
 
 export function useMatch() {
@@ -500,6 +589,8 @@ export function MatchProvider({ children }) {
   const [savedMatches, setSavedMatches] = useState(() =>
     loadSaved(seasonStore.seasons, seasonStore.currentId)
   );
+  // Training attendance — static data that rides through every match reset.
+  const [trainingSessions, setTrainingSessions] = useState(loadTraining);
 
   // Which match the Home screen shows its fixture for: null is the match being
   // worked on, otherwise the id of a saved match. Ephemeral view state, not
@@ -535,6 +626,14 @@ export function MatchProvider({ children }) {
       /* storage full or unavailable — the app keeps working in memory */
     }
   }, [seasons, currentSeasonId]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(TRAINING_KEY, JSON.stringify(trainingSessions));
+    } catch {
+      /* storage full or unavailable — the app keeps working in memory */
+    }
+  }, [trainingSessions]);
 
   // The season newly saved matches are filed under.
   const currentSeason =
@@ -587,6 +686,33 @@ export function MatchProvider({ children }) {
     );
   };
 
+  // Write (or rewrite) a training session under its date. Saving again for
+  // a date that already has a session updates that record instead of piling
+  // up duplicates — the same upsert discipline as saveCurrentMatch.
+  const saveTrainingSession = (date, attendance) => {
+    if (!date) return;
+    setTrainingSessions((list) => {
+      const clean = cleanAttendance(attendance);
+      if (list.some((s) => s.date === date)) {
+        return list.map((s) =>
+          s.date === date ? { ...s, attendance: clean } : s
+        );
+      }
+      return [...list, { id: crypto.randomUUID(), date, attendance: clean }];
+    });
+  };
+
+  const deleteTrainingSession = (id) =>
+    setTrainingSessions((list) => list.filter((s) => s.id !== id));
+
+  // Fold a parsed import into the saved sessions, upserting by date.
+  const importTrainingSessions = (incoming) => {
+    const rows = Array.isArray(incoming) ? incoming : [];
+    if (!rows.length) return 0;
+    setTrainingSessions((list) => mergeTrainingRows(list, rows));
+    return rows.length;
+  };
+
   const value = {
     match,
     savedMatches,
@@ -599,6 +725,10 @@ export function MatchProvider({ children }) {
     updateSeason,
     deleteSeason,
     moveMatchesToSeason,
+    trainingSessions,
+    saveTrainingSession,
+    deleteTrainingSession,
+    importTrainingSessions,
     homeViewId,
     setHomeView: setHomeViewId,
     savedOpenId,

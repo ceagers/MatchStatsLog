@@ -12,7 +12,7 @@ import { haptic } from '../haptics.js';
 import {
   useMatch,
   computeSeasonStats, computePlayerMinutes, clockTotalMs, formatDate,
-  potmIncludes, PERIOD_UNSET, PERIOD_GREEN,
+  potmIncludes, trainingAttendance, PERIOD_UNSET, PERIOD_GREEN,
 } from '../store.jsx';
 import ExportSheet from '../components/ExportSheet.jsx';
 import PhotosSheet from '../components/PhotosSheet.jsx';
@@ -27,7 +27,7 @@ const BLANK_TOTALS = {
 
 export default function PlayerSeasonScreen({ season, playerName, matches, onBack }) {
   const { competitions } = useSettings();
-  const { match } = useMatch();
+  const { match, trainingSessions } = useMatch();
   // Division filter: '__all' counts every game, a value counts only those games.
   // All is the default.
   const [compFilter, setCompFilter] = useState('__all');
@@ -161,6 +161,10 @@ export default function PlayerSeasonScreen({ season, playerName, matches, onBack
     [season.name, displayName, playerName]
   );
 
+  // Training attendance sits outside the seasons — the % counts every
+  // training session saved on the Squad screen's Training tab.
+  const attendance = trainingAttendance(trainingSessions, playerName);
+
   const tiles = [
     { label: 'Games', value: me.played },
     { label: 'Starts', value: me.starts },
@@ -169,6 +173,7 @@ export default function PlayerSeasonScreen({ season, playerName, matches, onBack
     { label: 'POTM', value: me.potm },
     { label: 'Minutes', value: `${me.minutes}m` },
     { label: 'Played', value: me.percentage === null ? '—' : `${me.percentage}%` },
+    { label: 'Training', value: attendance.pct === null ? '—' : `${attendance.pct}%` },
   ];
 
   return (
@@ -317,6 +322,10 @@ export default function PlayerSeasonScreen({ season, playerName, matches, onBack
         match's length, counted for matches they were available for. A dash
         means the match carries no data for that column — the squad grid was
         never marked, or there is no match time to measure against.
+        Attendance is this player's training sessions marked in (the green Y
+        on the Squad screen's Training tab) against every training session
+        saved there — it ignores the division filter, since training sits
+        outside the seasons.
         {season.minutesCutoff > 0
           ? ` The oldest ${season.minutesCutoff} game${
               season.minutesCutoff === 1 ? '' : 's'
@@ -344,7 +353,9 @@ export default function PlayerSeasonScreen({ season, playerName, matches, onBack
         <ListButton
           onClick={() => {
             haptic('archived');
-            setPhotos(buildPlayerSeasonPhotos(season.name, exportLabel, division, me, rows));
+            setPhotos(
+              buildPlayerSeasonPhotos(season.name, exportLabel, division, me, rows, attendance.pct)
+            );
             setPhotosOpen(true);
           }}
         >
