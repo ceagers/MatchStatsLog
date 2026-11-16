@@ -56,6 +56,11 @@ export default function TrainingTab({ onModalChange }) {
   const [importParsed, setImportParsed] = useState(null);
   const [importError, setImportError] = useState('');
   const [pendingDelete, setPendingDelete] = useState(null);
+  // Summary table sorting — the same discipline as the Squad Summary: tap a
+  // column title to sort by it (desc first), tap again to flip, tap again to
+  // return to squad order. Sessions is the same number for everyone, so it
+  // stays out of the sorting.
+  const [sort, setSort] = useState(null); // { key, dir: 'asc' | 'desc' } | null
   const importInputRef = useRef(null);
 
   // Any open sheet or dialog lifts the whole Squad screen above the tab bar.
@@ -177,6 +182,90 @@ export default function TrainingTab({ onModalChange }) {
     setPendingDelete(null);
   };
 
+  // The summary table: one row per player — the squad in its saved order
+  // first, then any names the sessions still carry but the squad no longer
+  // lists — with every saved session counted, however it was marked.
+  const summaryRows = useMemo(() => {
+    const names = [...squadNames];
+    trainingSessions.forEach((s) =>
+      Object.keys((s && s.attendance) || {}).forEach((n) => {
+        if (n && !names.includes(n)) names.push(n);
+      })
+    );
+    const total = trainingSessions.length;
+    return names.map((name) => {
+      const attended = trainingSessions.reduce(
+        (acc, s) =>
+          acc + (s && s.attendance && s.attendance[name] === TRAINING_Y ? 1 : 0),
+        0
+      );
+      return {
+        name,
+        sessions: total,
+        attended,
+        pct: total ? Math.round((100 * attended) / total) : null,
+      };
+    });
+  }, [squadNames, trainingSessions]);
+
+  const toggleSort = (key) => {
+    haptic('tick');
+    setSort((s) =>
+      s && s.key === key
+        ? s.dir === 'desc'
+          ? { key, dir: 'asc' }
+          : null
+        : { key, dir: 'desc' }
+    );
+  };
+
+  const sorted =
+    sort === null
+      ? summaryRows
+      : [...summaryRows].sort((a, b) => {
+          let cmp;
+          if (sort.key === 'name') cmp = a.name.localeCompare(b.name);
+          else if (sort.key === 'pct') {
+            // A dash (no sessions yet) sorts as the lowest value.
+            const av = a.pct === null ? -1 : a.pct;
+            const bv = b.pct === null ? -1 : b.pct;
+            cmp = av - bv;
+          } else {
+            cmp = a.attended - b.attended;
+          }
+          return sort.dir === 'asc' ? cmp : -cmp;
+        });
+
+  // A sortable column heading — label over a chevron, the indicator showing
+  // only on the active column, exactly as the Squad Summary does it.
+  const sortTh = (key, label, pad) => {
+    const active = sort !== null && sort.key === key;
+    return (
+      <th
+        className={`border border-black/10 ${pad} py-1.5 align-middle dark:border-white/15 ${
+          active ? 'text-primary' : 'text-gray-400 dark:text-gray-500'
+        }`}
+      >
+        <button
+          type="button"
+          onClick={() => toggleSort(key)}
+          className={`flex w-full flex-col gap-0.5 transition-colors active:opacity-60 ${
+            key === 'name' ? 'items-start text-left' : 'items-center'
+          }`}
+        >
+          <span className="text-[10px] font-medium uppercase tracking-wide">
+            {label}
+          </span>
+          <Icon
+            name={active && sort.dir === 'desc' ? 'chevron-down' : 'chevron-up'}
+            size={11}
+            className={active ? '' : 'opacity-0'}
+          />
+        </button>
+      </th>
+    );
+  };
+
   return (
     <>
       <Block className="!mb-2 text-[13px] text-gray-500 dark:text-gray-400">
@@ -275,6 +364,62 @@ export default function TrainingTab({ onModalChange }) {
           </Block>
         </>
       )}
+
+      <BlockTitle className="mt-2">
+        Summary{' '}
+        <span className="font-normal text-gray-500 dark:text-gray-400">
+          ({trainingSessions.length} session{trainingSessions.length === 1 ? '' : 's'})
+        </span>
+      </BlockTitle>
+      {summaryRows.length === 0 ? (
+        <Block strong inset className="text-center text-gray-500 dark:text-gray-400">
+          Nothing to summarise yet — the table fills in as sessions are saved.
+        </Block>
+      ) : (
+        <div className="mx-4 mt-3 mb-2 overflow-hidden rounded-2xl border border-black/10 bg-white dark:border-white/15 dark:bg-[#1c1c1e]">
+          <table className="w-full border-collapse text-[13px]">
+            <thead>
+              <tr>
+                {sortTh('name', 'Player', 'px-2')}
+                <th className="w-14 border border-black/10 px-1 py-1.5 align-middle
+                               text-center text-[10px] font-medium uppercase
+                               tracking-wide text-gray-400 dark:text-gray-500
+                               dark:border-white/15">
+                  Sessions
+                </th>
+                {sortTh('attended', 'Attended', 'px-1')}
+                {sortTh('pct', '%', 'px-1')}
+              </tr>
+            </thead>
+            <tbody>
+              {sorted.map((r) => (
+                <tr key={r.name}>
+                  <td className="border border-black/10 px-2 py-2 align-middle font-medium dark:border-white/15">
+                    {r.name}
+                  </td>
+                  <td className="w-14 border border-black/10 px-1 py-2 text-center align-middle tabular-nums dark:border-white/15">
+                    {r.sessions}
+                  </td>
+                  <td className="w-14 border border-black/10 px-1 py-2 text-center align-middle tabular-nums dark:border-white/15">
+                    {r.attended}
+                  </td>
+                  <td className="w-12 border border-black/10 px-1 py-2 text-center align-middle font-semibold tabular-nums dark:border-white/15">
+                    {r.pct === null ? '—' : `${r.pct}%`}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <Block className="!mt-1 text-[12px] text-gray-500 dark:text-gray-400">
+        Sessions counts every training session saved under this tab, however it
+        was marked; Attended is the green Y marks; % is attended against the
+        sessions saved. A dash means no sessions are saved yet. Tap a column
+        title to sort the table — Sessions is the same for everyone, so it
+        stays put — and tap again to flip the order, then again to return to
+        squad order.
+      </Block>
 
       <BlockTitle className="mt-2">Export &amp; Import</BlockTitle>
       <List strong inset>
