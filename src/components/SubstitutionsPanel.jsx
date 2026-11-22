@@ -5,8 +5,9 @@
 // (red Period 1) plus everyone who has come off in a logged substitution, in
 // the order the bench was marked and the subs were logged; the rest default
 // blank. Every picker carries a blank row, so a default can be amended to
-// blank by hand. Each fully picked pair is logged as its own substitution at
-// the shared minute. The form and the Substitutions Logged list share one
+// blank by hand. A pair is saved when its Off is populated; a slot left blank
+// on Off is ignored, however its On picker sits — so the bench defaults need
+// no unpicking when only one sub is being made. The form and the Substitutions
 // state hook, so they can be laid out apart — the In Game screen slots the
 // logged goals between them — or together, as the Players screen shows them.
 
@@ -128,24 +129,31 @@ export function useSubstitutions({ onModalOpen } = {}) {
   const onVals = Array.from({ length: SLOTS }, (_, i) => pickOn(i));
   const offVals = Array.from({ length: SLOTS }, (_, i) => pickOff(i));
   const pairs = onVals.map((on, i) => ({ on, off: offVals[i] }));
-  const filledPairs = pairs.filter((p) => p.on && p.off);
-  const halfPair = pairs.some((p) => (p.on && !p.off) || (!p.on && p.off));
-  const dupOn = onVals.some((v, i) => v && onVals.indexOf(v) !== i);
+  // Only slots with a populated Off are saved; a blank Off ignores the pair,
+  // however the On picker sits. A saved slot still needs its On.
+  const savedPairs = pairs.filter((p) => p.off);
+  const filledPairs = savedPairs.filter((p) => p.on);
+  const halfPair = savedPairs.some((p) => !p.on);
+  const savedOns = filledPairs.map((p) => p.on);
+  const dupOn = savedOns.some((v, i) => v && savedOns.indexOf(v) !== i);
   const dupOff = offVals.some((v, i) => v && offVals.indexOf(v) !== i);
-  const overlap = onVals.some((v) => v && offVals.includes(v));
+  const overlap = filledPairs.some((p) => offVals.includes(p.on));
   const shortage = names.length < 2;
   const canSave = !shortage && filledPairs.length > 0 && !halfPair && !dupOn && !dupOff && !overlap;
 
-  const onErrors = onVals.map((v, i) => {
-    if (v && onVals.indexOf(v) !== i) return 'Picked twice';
-    if (v && offVals.includes(v)) return 'Also picked to come off';
-    if (v && !offVals[i]) return 'Pick who is coming off';
+  // Errors are reported per slot, but only for slots being saved — a blank
+  // Off slot is ignored, so its On carries no error.
+  const onErrors = pairs.map((p) => {
+    if (!p.off) return undefined;
+    if (p.on && savedOns.filter((v) => v === p.on).length > 1) return 'Picked twice';
+    if (p.on && offVals.includes(p.on)) return 'Also picked to come off';
+    if (!p.on) return 'Pick who is coming on';
     return undefined;
   });
-  const offErrors = offVals.map((v, i) => {
-    if (v && offVals.indexOf(v) !== i) return 'Picked twice';
-    if (v && onVals.includes(v)) return 'Also picked to come on';
-    if (v && !onVals[i]) return 'Pick who is coming on';
+  const offErrors = pairs.map((p) => {
+    if (!p.off) return undefined;
+    if (offVals.filter((v) => v === p.off).length > 1) return 'Picked twice';
+    if (p.on && savedOns.includes(p.off)) return 'Also picked to come on';
     return undefined;
   });
 
@@ -163,10 +171,11 @@ export function useSubstitutions({ onModalOpen } = {}) {
       addSub({ minute: Number(minute), on: p.on, off: p.off, notes: notes.trim() })
     );
     // Default the next batch to whoever is on the bench now: the pool minus
-    // everyone just brought on, plus everyone just subbed off.
-    const nextPool = benchPool.filter((n) => !onVals.includes(n));
-    offVals.forEach((n) => {
-      if (n && !nextPool.includes(n)) nextPool.push(n);
+    // everyone just brought on, plus everyone just subbed off. Only the saved
+    // pairs count — ignored slots leave the pool as it stands.
+    const nextPool = benchPool.filter((n) => !savedOns.includes(n));
+    filledPairs.forEach((p) => {
+      if (!nextPool.includes(p.off)) nextPool.push(p.off);
     });
     touched.current = new Set();
     setOnPicks(defaultPicks(nextPool));
