@@ -14,6 +14,8 @@ import { fullMatchCsv, fullMatchFileName, parseFullMatchCsv } from '../fullmatch
 import {
   parseBulkMatchesCsv, bulkMatchesCsv, bulkImportFileName,
 } from '../bulkimport.js';
+import { buildBackup, parseBackup, backupFileName } from '../backup.js';
+import { useSettings, ACCENTS, FONTS } from '../settings.jsx';
 import { showToast } from '../toast.jsx';
 import ExportSheet from '../components/ExportSheet.jsx';
 import PhotosSheet from '../components/PhotosSheet.jsx';
@@ -23,7 +25,16 @@ import { Icon } from '../icons.js';
 import { haptic } from '../haptics.js';
 
 export default function UtilitiesScreen() {
-  const { match, savedMatches, currentSeason, resetMatch, saveCurrentMatch, importMatch, importMatchesAsSaved } = useMatch();
+  const {
+    match, savedMatches, seasons, currentSeasonId, trainingSessions, currentSeason,
+    resetMatch, saveCurrentMatch, importMatch, importMatchesAsSaved,
+    mergeFullBackup, restoreFullBackup,
+  } = useMatch();
+  const {
+    teamName, theme, accent, font, competitions, matchTypes, homeImage, badgeImage,
+    setTeamName, setTheme, setAccent, setFont, setHomeImage, setBadgeImage,
+    setCompetitions, setMatchTypes,
+  } = useSettings();
   const [confirmReset, setConfirmReset] = useState(false);
   const [settingsOpened, setSettingsOpened] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
@@ -50,6 +61,17 @@ export default function UtilitiesScreen() {
   const [bulkError, setBulkError] = useState('');
   const [bulkOpen, setBulkOpen] = useState(false);
   const bulkInputRef = useRef(null);
+
+  // Full backup: one JSON file carrying everything — this match, the whole
+  // history, every season, all training attendance and the app's settings.
+  // Export opens the shared hand-over sheet with a .json file; Import reads
+  // a file, previews what it carries and offers merge or full restore.
+  const [backupOpen, setBackupOpen] = useState(false);
+  const [backupParsed, setBackupParsed] = useState(null);
+  const [backupSheetOpen, setBackupSheetOpen] = useState(false);
+  const [confirmBackupReplace, setConfirmBackupReplace] = useState(false);
+  const [backupError, setBackupError] = useState('');
+  const backupInputRef = useRef(null);
 
   const savedRecord = savedMatches.find((r) => r.id === match.savedId) || null;
 
@@ -303,12 +325,140 @@ export default function UtilitiesScreen() {
     );
   };
 
+  // --- Full backup ------------------------------------------------------------
+  // Everything the app keeps, out in one JSON file and back in again.
+
+  // The settings side of a restore — the store carries everything else, but
+  // the look lives in the settings context, so only this screen can apply it.
+  // Each choice is checked against what the app recognises, the same way the
+  // live settings panel repairs a stored value it does not know.
+  const applyBackupSettings = (s) => {
+    if (!s) return;
+    if (typeof s.teamName === 'string') setTeamName(s.teamName);
+    if (['system', 'light', 'dark'].includes(s.theme)) setTheme(s.theme);
+    if (ACCENTS.some((a) => a.id === s.accent)) setAccent(s.accent);
+    if (FONTS.some((f) => f.id === s.font)) setFont(s.font);
+    if (Array.isArray(s.competitions)) setCompetitions(s.competitions);
+    if (Array.isArray(s.matchTypes)) setMatchTypes(s.matchTypes);
+    const image = (v) =>
+      v === null || (typeof v === 'string' && v.startsWith('data:image/'));
+    if (image(s.homeImage)) setHomeImage(s.homeImage);
+    if (image(s.badgeImage)) setBadgeImage(s.badgeImage);
+  };
+
+  const exportBackup = () => {
+    haptic('tick');
+    setBackupOpen(true);
+  };
+
+  const pickBackupFile = () => {
+    haptic('tick');
+    if (backupInputRef.current) backupInputRef.current.click();
+  };
+
+  const onBackupFile = async (event) => {
+    const file = event.target.files && event.target.files[0];
+    event.target.value = ''; // so picking the same file again still fires
+    if (!file) return;
+    try {
+      const parsed = parseBackup(await file.text());
+      if (!parsed.ok) {
+        haptic('removed');
+        setBackupError(parsed.error);
+        return;
+      }
+      setBackupError('');
+      setBackupParsed(parsed);
+      setBackupSheetOpen(true);
+    } catch {
+      haptic('removed');
+      setBackupError('That file could not be read.');
+    }
+  };
+
+  // One line per thing the backup carries, for the preview sheet.
+  const backupSummaryLines = (s) => {
+    if (!s) return [];
+    const lines = [];
+    if (s.currentMatch && (s.currentMatch.opposition || s.currentMatch.date)) {
+      lines.push(
+        `Match in progress: ${s.currentMatch.opposition || 'unnamed'}${
+          s.currentMatch.date ? `, ${formatDate(s.currentMatch.date)}` : ''
+        }`
+      );
+    } else if (s.currentMatch) {
+      lines.push('Match in progress: an empty match');
+    }
+    lines.push(
+      `${s.matches} match${s.matches === 1 ? '' : 'es'} in history`
+    );
+    lines.push(
+      `${s.seasons} season${s.seasons === 1 ? '' : 's'}: ${
+        s.seasonNames.join(', ') || 'none'
+      }`
+    );
+    lines.push(
+      `${s.training} training session${s.training === 1 ? '' : 's'}`
+    );
+    const bits = [];
+    if (s.settings.teamName) bits.push(`team "${s.settings.teamName}"`);
+    if (s.settings.wallpapers) {
+      bits.push(`${s.settings.wallpapers} wallpaper${s.settings.wallpapers === 1 ? '' : 's'}`);
+    }
+    lines.push(bits.length ? `Settings: ${bits.join(', ')}` : 'Settings: none carried');
+    return lines;
+  };
+
+  const backupMerge = () => {
+    haptic('archived');
+    mergeFullBackup(backupParsed.backup);
+    setBackupSheetOpen(false);
+    setBackupParsed(null);
+    showToast('Backup merged in — nothing here was replaced');
+  };
+
+  const backupReplace = () => {
+    haptic('archived');
+    restoreFullBackup(backupParsed.backup);
+    applyBackupSettings(backupParsed.backup.settings);
+    setConfirmBackupReplace(false);
+    setBackupSheetOpen(false);
+    setBackupParsed(null);
+    showToast('Phone restored from the backup');
+  };
+
+  const closeBackupSheet = () => {
+    setBackupSheetOpen(false);
+    setBackupParsed(null);
+  };
+
+  // The backup payload is built when its sheet opens, so it always carries
+  // what is on the phone at that moment.
+  const backupJson = backupOpen
+    ? JSON.stringify(
+        buildBackup({
+          match,
+          savedMatches,
+          seasons,
+          currentSeasonId,
+          trainingSessions,
+          settings: {
+            teamName, theme, accent, font,
+            competitions, matchTypes, homeImage, badgeImage,
+          },
+        }),
+        null,
+        2
+      )
+    : '';
+
   // The settings panel, export sheet, reset confirmation and photos sheet
   // lift this screen above the tab bar.
   const modalOpen =
     settingsOpened || confirmReset || exportOpen || photosOpen ||
     fullExportOpen || confirmImport || pickerOpen ||
-    importChoices !== null || bulkOpen;
+    importChoices !== null || bulkOpen ||
+    backupOpen || backupSheetOpen || confirmBackupReplace;
 
   return (
     <>
@@ -481,6 +631,35 @@ export default function UtilitiesScreen() {
         goal count is written after the name (&quot;Name 2&quot;). Every row
         becomes a saved match in the current season — nothing on this screen
         changes.
+      </Block>
+
+      <BlockTitle>Full Backup</BlockTitle>
+      <List strong inset>
+        <ListButton onClick={exportBackup}>
+          <span className="inline-flex items-center gap-2">
+            <Icon name="database-backup" size={20} />
+            Export Full Backup
+          </span>
+        </ListButton>
+        <ListButton onClick={pickBackupFile}>
+          <span className="inline-flex items-center gap-2">
+            <Icon name="archive-restore" size={20} />
+            Import Full Backup
+          </span>
+        </ListButton>
+      </List>
+      {backupError !== '' && (
+        <Block className="!mt-1 !mb-0 text-[13px] k-color-brand-red">
+          {backupError}
+        </Block>
+      )}
+      <Block className="!mt-1 text-[13px] text-gray-500 dark:text-gray-400">
+        Everything the app keeps in one JSON file — this match, every match in
+        history, every season with its minutes settings, all training attendance
+        and the app&apos;s settings, wallpapers included. Import reads one back and
+        offers a merge (adds what the phone doesn&apos;t have, replaces nothing) or a
+        full restore (the phone becomes exactly what the backup holds). Use it to
+        move everything to a new phone or keep a copy safe.
       </Block>
 
       <BlockTitle>Reset</BlockTitle>
@@ -661,6 +840,86 @@ export default function UtilitiesScreen() {
           </Button>
         </Block>
       </Sheet>
+
+      <ExportSheet
+        opened={backupOpen}
+        onClose={() => setBackupOpen(false)}
+        match={match}
+        title="Full Backup"
+        subtitle="JSON backup file"
+        mime="application/json"
+        fileName={backupFileName()}
+        csv={backupJson}
+        description="Everything the app keeps in one file — this match, every match in history, every season with its minutes settings, all training attendance and the app's settings, wallpapers included. Import Full Backup reads it back, on this phone or another."
+      />
+
+      <Sheet
+        className="no-safe-areas-top pb-safe flex flex-col max-h-[85dvh]"
+        opened={backupSheetOpen}
+        onBackdropClick={closeBackupSheet}
+      >
+        <Navbar
+          title="Full backup"
+          right={<Link navbar onClick={closeBackupSheet}>Cancel</Link>}
+        />
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+          {backupParsed && (
+            <>
+              <Block className="!mb-1 !mt-3 text-[13px] text-gray-500 dark:text-gray-400">
+                This backup carries:
+              </Block>
+              <List strong inset>
+                {backupSummaryLines(backupParsed.summary).map((line, i) => (
+                  <ListItem key={i} title={line} />
+                ))}
+              </List>
+              {backupParsed.warnings.length > 0 && (
+                <Block className="!mt-1 text-[13px] text-orange-600 dark:text-orange-400">
+                  <div className="whitespace-pre-wrap">
+                    {backupParsed.warnings.join('\n')}
+                  </div>
+                </Block>
+              )}
+              <Block className="!mt-1 text-[13px] text-gray-500 dark:text-gray-400">
+                Merge adds what the phone doesn&apos;t have and replaces nothing — the
+                match in progress and the settings stay as they are. Replace makes
+                the phone exactly what the backup holds, settings included.
+              </Block>
+            </>
+          )}
+        </div>
+        <Block className="shrink-0 grid grid-cols-1 gap-3">
+          <Button large rounded onClick={backupMerge}>
+            Merge Into This Phone
+          </Button>
+          <Button large rounded tonal onClick={() => setConfirmBackupReplace(true)}>
+            Replace Everything…
+          </Button>
+        </Block>
+      </Sheet>
+
+      <Dialog
+        opened={confirmBackupReplace}
+        onBackdropClick={() => setConfirmBackupReplace(false)}
+        title="Replace everything?"
+        content="The phone becomes exactly what the backup holds — seasons, history, training, the match in progress and the settings. What is on it now is overwritten; merge instead if you want both kept."
+        buttons={
+          <>
+            <DialogButton onClick={() => setConfirmBackupReplace(false)}>Cancel</DialogButton>
+            <DialogButton strong onClick={backupReplace}>
+              Replace
+            </DialogButton>
+          </>
+        }
+      />
+
+      <input
+        ref={backupInputRef}
+        type="file"
+        accept=".json,application/json,text/plain"
+        className="hidden"
+        onChange={onBackupFile}
+      />
 
       <Dialog
         opened={confirmImport}

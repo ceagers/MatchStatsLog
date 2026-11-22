@@ -1090,6 +1090,78 @@ export function MatchProvider({ children }) {
           savedId: null,
         };
       }),
+
+    // A full backup brought in as an addition: seasons, history records and
+    // training sessions the phone doesn't already have are added; what is
+    // here is never overwritten — the match in progress and the settings
+    // (held by the caller's context) stay untouched. A record whose season
+    // the backup doesn't carry lands in the season that is current now.
+    mergeFullBackup: (backup) => {
+      const b = backup && typeof backup === 'object' ? backup : {};
+      const incomingSeasons = (Array.isArray(b.seasons) ? b.seasons : []).filter(
+        (s) =>
+          s &&
+          typeof s.id === 'string' &&
+          s.id &&
+          !seasons.some((cur) => cur.id === s.id)
+      );
+      const allSeasons = [...seasons, ...incomingSeasons];
+      const knownSeason = new Set(allSeasons.map((s) => s.id));
+      const incomingRecords = (Array.isArray(b.history) ? b.history : [])
+        .filter(
+          (r) =>
+            r &&
+            typeof r.id === 'string' &&
+            r.id &&
+            r.match &&
+            !savedMatches.some((cur) => cur.id === r.id)
+        )
+        .map((r) => ({
+          id: r.id,
+          savedAt: typeof r.savedAt === 'string' ? r.savedAt : new Date().toISOString(),
+          seasonId: knownSeason.has(r.seasonId) ? r.seasonId : currentSeasonId,
+          match: normalise(r.match),
+        }));
+      setSeasons(allSeasons);
+      if (incomingRecords.length) {
+        setSavedMatches((old) => [...incomingRecords, ...old]);
+      }
+      importTrainingSessions(b.training);
+    },
+
+    // A full backup restoring the phone exactly: seasons, history, training
+    // and the match in progress are all replaced by what the backup holds,
+    // and the season that is current becomes the backup's. The look (theme,
+    // accent, team name, wallpapers) is applied by the caller, which holds
+    // the settings context. The roster is NOT reconciled — a restore is
+    // meant to make the phone exactly what the backup was.
+    restoreFullBackup: (backup) => {
+      const b = backup && typeof backup === 'object' ? backup : {};
+      const list =
+        Array.isArray(b.seasons) && b.seasons.length
+          ? b.seasons
+          : [makeSeason('Default Season')];
+      const currentId = list.some((s) => s.id === b.currentId)
+        ? b.currentId
+        : list[0].id;
+      setSeasons(list);
+      setCurrentSeasonId(currentId);
+      setSavedMatches(
+        (Array.isArray(b.history) ? b.history : [])
+          .filter((r) => r && typeof r.id === 'string' && r.match)
+          .map((r) => ({
+            id: r.id,
+            savedAt: typeof r.savedAt === 'string' ? r.savedAt : new Date().toISOString(),
+            seasonId: list.some((s) => s.id === r.seasonId) ? r.seasonId : currentId,
+            match: normalise(r.match),
+          }))
+      );
+      setTrainingSessions(Array.isArray(b.training) ? normaliseTraining(b.training) : []);
+      setMatch(() => ({ ...normalise(b.match), savedId: null }));
+      // Nothing on the phone can still point at a record that is gone.
+      setHomeViewId(null);
+      setSavedOpenId(null);
+    },
   };
 
   return <MatchContext.Provider value={value}>{children}</MatchContext.Provider>;

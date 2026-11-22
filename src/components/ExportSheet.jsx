@@ -19,6 +19,11 @@ export default function ExportSheet({
   csv: csvProp,
   fileName: fileNameProp,
   description: descriptionProp,
+  // Full backups travel as JSON, so the sheet's wording and MIME type are
+  // overridable — everything else stays the share/download/copy routine.
+  title: titleProp = 'Export To Excel',
+  subtitle: subtitleProp = 'Comma-separated spreadsheet',
+  mime: mimeProp = CSV_MIME,
 }) {
   const [toast, setToast] = useState('');
 
@@ -36,11 +41,11 @@ export default function ExportSheet({
     if (!opened || typeof navigator === 'undefined') return false;
     if (typeof navigator.canShare !== 'function') return false;
     try {
-      return navigator.canShare({ files: [new File([csv], fileName, { type: CSV_MIME })] });
+      return navigator.canShare({ files: [new File([csv], fileName, { type: mimeProp })] });
     } catch {
       return false;
     }
-  }, [opened, csv, fileName]);
+  }, [opened, csv, fileName, mimeProp]);
 
   const flash = (text) => {
     setToast(text);
@@ -50,18 +55,18 @@ export default function ExportSheet({
   const shareSpreadsheet = async () => {
     haptic('tick');
     try {
-      const file = new File([csv], fileName, { type: CSV_MIME });
+      const file = new File([csv], fileName, { type: mimeProp });
       await navigator.share({ files: [file], title: fileName });
-      flash('Spreadsheet shared');
+      flash('File shared');
     } catch {
-      flash('Could not share — copy it instead');
+      flash('Could not share — save the file instead');
     }
   };
 
   const saveSpreadsheet = () => {
     haptic('tick');
     try {
-      const url = URL.createObjectURL(new Blob([csv], { type: CSV_MIME }));
+      const url = URL.createObjectURL(new Blob([csv], { type: mimeProp }));
       const link = document.createElement('a');
       link.href = url;
       link.download = fileName;
@@ -69,7 +74,7 @@ export default function ExportSheet({
       link.click();
       link.remove();
       setTimeout(() => URL.revokeObjectURL(url), 4000);
-      flash('Spreadsheet file ready');
+      flash('File ready');
     } catch {
       flash('Could not save the file — copy it instead');
     }
@@ -79,7 +84,7 @@ export default function ExportSheet({
     haptic('tick');
     try {
       await navigator.clipboard.writeText(csv);
-      flash('Copied — paste it into Excel');
+      flash('Copied — paste it where you need it');
     } catch {
       flash('Select the text below and copy it');
     }
@@ -93,7 +98,7 @@ export default function ExportSheet({
         onBackdropClick={onClose}
       >
         <Navbar
-          title="Export To Excel"
+          title={titleProp}
           right={<Link navbar onClick={onClose}>Done</Link>}
         />
 
@@ -101,7 +106,7 @@ export default function ExportSheet({
           <ListItem
             media={<Icon name="file-spreadsheet" size={24} />}
             title={fileName}
-            subtitle="Comma-separated spreadsheet"
+            subtitle={subtitleProp}
           />
         </List>
 
@@ -146,8 +151,8 @@ export default function ExportSheet({
           />
         </Block>
         <Block className="!mt-2 text-[13px] text-gray-500 dark:text-gray-400">
-          Nothing to tap above? Press and hold the text and copy it, then paste it into
-          your spreadsheet.
+          Nothing to tap above? Press and hold the text and copy it, then paste it
+          wherever it is needed.
         </Block>
       </Sheet>
 
